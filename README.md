@@ -9,6 +9,7 @@ Built with [Three.js](https://threejs.org) and [Vite](https://vitejs.dev). There
 - **Accurate positions.** Heliocentric positions come from JPL's *Keplerian Elements for Approximate Positions of the Major Planets* (E. M. Standish), with Kepler's equation solved for each planet. The test suite checks them against NASA JPL Horizons: errors are a few arcminutes or less from 1800 to 2050, and stay small from 3000 BC to 3000 AD.
 - **Real orientation.** Spin axes and rotation angles follow the IAU WGCCRE models, so day and night sides, Earth's tilt and Saturn's ring angle are correct for the date. The Moon follows Meeus' truncated ELP-2000/82 lunar theory (within a few arcseconds of JPL Horizons), and the Milky Way sits in its true place on the sky.
 - **Eclipses.** The Moon's shadow on Earth (umbra and soft penumbra) and the coppery, Earth-shadowed Moon are computed from true geometry, so they are right in either scale. An eclipse finder (`E`) lists past and upcoming solar and lunar eclipses with their type and time of greatest eclipse, and jumps to any of them.
+- **Sky from Earth.** Pick a city (about 320 are built in), use your location (never sent anywhere) or type coordinates, and the *Tonight* panel (`T`) lists Sun and Moon rise and set, twilight, and where the Moon and each planet is — altitude, azimuth, rise, transit, set, magnitude and constellation — in the city's own time zone. *View the sky from here* (`G`) puts you on the ground: a horizon, a twilight sky that follows the Sun, the real stars and constellations turning with the local sidereal time, planets at their true places and the Moon with its true phase. Drag to look around, scroll to zoom, and use the time controls to watch the sky move.
 - **Two scales.** *Compressed* (the default) keeps every direction exact but square-roots the distances and enlarges the planets so you can see them. *True scale* uses real distances and sizes. Switching animates smoothly between the two.
 - **Time travel.** Play, pause, reverse, speeds from real time up to 1 year per second, a date picker, and a **Now** button.
 - **Explore.** Click any planet or label to fly to it and follow it. The info panel shows live distance from the Sun and from Earth, light time, orbital speed and ecliptic coordinates.
@@ -29,6 +30,8 @@ Built with [Three.js](https://threejs.org) and [Vite](https://vitejs.dev). There
 | `0`–`9`, `M` | Sun, planets, Pluto, Moon |
 | `S` `O` `L` `B` `P` | Scale, orbits, labels, asteroids, Pluto |
 | `E` | Eclipse finder |
+| `T` | Sky from Earth: observer and Tonight panel |
+| `G` | Ground view (drag to look, scroll to zoom, arrows pan, `+` `-` zoom) |
 
 ## Development
 
@@ -56,7 +59,8 @@ src/textures.js         GPU-baked procedural maps, ring profile, bake-function r
 src/textures/bakeQueue.js  progressive baking: 256 px previews first, full resolution in idle time
 scripts/                measure-load.mjs (load timing), make-assets.mjs (icons, og.png)
 src/earthMask.js        Natural Earth coastlines rasterized into Earth's land mask
-src/ui/                 toolbar, time bar, body list, info panel, labels, picking, keyboard
+src/observer.js         the observer (place, local time zone, localStorage) and src/data/cities.js
+src/ui/                 toolbar, time bar, body list, info panel, labels, picking, keyboard, eclipse and observer panels
 src/features/           optional feature modules (see below)
 tests/                  unit tests (Vitest) and e2e smoke tests (Playwright)
 ```
@@ -86,6 +90,7 @@ The Vite `base` is set to `./`, so the build works under any repository name. Th
 - Reference ephemerides for tests: NASA JPL Horizons
 - Rotation models: IAU Working Group on Cartographic Coordinates and Rotational Elements (2015)
 - Lunar theory, lunar phases and eclipses: J. Meeus, *Astronomical Algorithms* (2nd ed.), chapters 47, 49 and 54
+- Sky from Earth (`src/ephemeris/topocentric.js`): J. Meeus, *Astronomical Algorithms* (2nd ed.) ch. 12 sidereal time, 13 horizontal coordinates, 15 rise/set, 16 refraction, 21 precession, 22 nutation, 40 parallax, 48 phases; planetary magnitudes after Mallama & Hilton (2018). Checked against JPL Horizons observer tables (`tests/horizons-sky.test.js`: Sun, Moon, Venus, Mars within 0.01° of Horizons in altitude and azimuth, Jupiter 0.03°, Saturn 0.08°, rise and set within a minute). City coordinates: hand-entered public geographic facts rounded to 0.01°; time zones are IANA names resolved by the browser's `Intl`
 - Galilean moons: J. Meeus, *Astronomical Algorithms* ch. 44 (after Lieske's E5). Other major moons: JPL Planetary Satellite Mean Elements (<https://ssd.jpl.nasa.gov/sats/elem/>), refined against Horizons by `scripts/fit-satellites.mjs`; parent-relative errors are ≤ 0.33° for every moon over 1950–2050 (Galileans ≈ 0.01° median)
 - Simplex noise: Ian McEwan, Stefan Gustavson (Ashima Arts), MIT License
 - Coastlines: [Natural Earth](https://www.naturalearthdata.com) 1:50m land (public domain), via the `world-atlas` package
