@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Solar System — Live 3D Orrery</title>
+    <meta name="description" content="An interactive 3D model of the solar system with planets placed at their real positions for any date, computed from JPL orbital elements." />
+    <meta name="theme-color" content="#05060a" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='12' fill='%23ffb547'/%3E%3Cellipse cx='32' cy='32' rx='28' ry='10' fill='none' stroke='%239fb8ff' stroke-width='3' transform='rotate(-25 32 32)'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+      <div id="labels"></div>
+
+      <div id="loader">
+        <div class="loader-orbit"><div class="loader-sun"></div><div class="loader-planet"></div></div>
+        <p>Calculating planetary positions…</p>
+      </div>
+
+      <header class="brand panel">
+        <h1>Solar System</h1>
+        <div class="date-display">
+          <span id="date-main">—</span>
+          <span id="date-sub">—</span>
+        </div>
+      </header>
+
+      <nav id="body-list" class="panel" aria-label="Celestial bodies"></nav>
+
+      <div class="toolbar panel" role="toolbar" aria-label="View options">
+        <div class="segmented" role="radiogroup" aria-label="Scale">
+          <button data-scale="1" class="active" role="radio" aria-checked="true" title="Compressed scale (S)">Compressed</button>
+          <button data-scale="0" role="radio" aria-checked="false" title="True scale (S)">True scale</button>
+        </div>
+        <div class="toggles">
+          <button class="toggle active" data-toggle="orbits" title="Orbits (O)" aria-pressed="true">Orbits</button>
+          <button class="toggle active" data-toggle="labels" title="Labels (L)" aria-pressed="true">Labels</button>
+          <button class="toggle active" data-toggle="belt" title="Asteroid belt (B)" aria-pressed="true">Asteroids</button>
+          <button class="toggle active" data-toggle="pluto" title="Pluto (P)" aria-pressed="true">Pluto</button>
+        </div>
+        <button class="icon-btn" id="more-btn" title="Options" aria-label="More options">⋯</button>
+        <button class="icon-btn" id="about-btn" title="About" aria-label="About">?</button>
+      </div>
+
+      <aside id="info" class="panel" aria-live="polite">
+        <button class="close" id="info-close" aria-label="Close">×</button>
+        <div class="info-head">
+          <span class="swatch"></span>
+          <div>
+            <h2 id="info-name"></h2>
+            <p id="info-type"></p>
+          </div>
+        </div>
+        <p id="info-desc"></p>
+        <dl id="info-live" class="stats live"></dl>
+        <dl id="info-static" class="stats"></dl>
+      </aside>
+
+      <div class="timebar panel" role="group" aria-label="Time controls">
+        <button class="icon-btn" id="t-reverse" title="Reverse (R)" aria-label="Reverse time">
+          <svg viewBox="0 0 24 24"><path d="M11 6v12l-8.5-6L11 6zm1 6l8.5 6V6L12 12z"/></svg>
+        </button>
+        <button class="icon-btn primary" id="t-play" title="Play / pause (Space)" aria-label="Play or pause">
+          <svg class="i-pause" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+          <svg class="i-play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg>
+        </button>
+        <div class="speed">
+          <input type="range" id="t-speed" min="0" max="7" step="1" value="4" aria-label="Simulation speed" />
+          <span id="t-speed-label">1 day / s</span>
+        </div>
+        <input type="date" id="t-date" aria-label="Jump to date" />
+        <button class="text-btn" id="t-now" title="Jump to now (N)">Now</button>
+      </div>
+
+      <div id="about" class="modal" hidden>
+        <div class="modal-card panel">
+          <button class="close" id="about-close" aria-label="Close">×</button>
+          <h2>About this orrery</h2>
+          <p>Planet positions are computed in your browser from JPL’s Keplerian orbital elements (E. M. Standish), solving Kepler’s equation for each planet. They agree with NASA JPL Horizons to within a few arcminutes between 1800 and 2050, and stay within a fraction of a degree from 3000 BC to 3000 AD.</p>
+          <p>Planet spin axes and rotation follow the IAU WGCCRE models, so the day/night side and Saturn’s ring tilt are correct for the date shown. The Moon uses a low-precision lunar theory. The Milky Way is placed in its true position on the sky.</p>
+          <p><strong>Compressed scale</strong> keeps every direction exact but shrinks distances (square root) and enlarges planets so you can see them. <strong>True scale</strong> uses real distances and sizes — the planets become specks, which is what space is really like.</p>
+          <p>Surface textures are generated procedurally; they are artistic, not maps.</p>
+          <h3>Controls</h3>
+          <ul class="keys">
+            <li><kbd>Drag</kbd> rotate · <kbd>Scroll</kbd>/<kbd>Pinch</kbd> zoom · <kbd>Right-drag</kbd> pan</li>
+            <li><kbd>Click</kbd> a planet to fly to it · <kbd>Double-click</kbd> space or <kbd>Esc</kbd> for overview</li>
+            <li><kbd>Space</kbd> play/pause · <kbd>[</kbd> <kbd>]</kbd> speed · <kbd>R</kbd> reverse · <kbd>N</kbd> now</li>
+            <li><kbd>1</kbd>–<kbd>9</kbd> planets · <kbd>S</kbd> scale · <kbd>O</kbd> orbits · <kbd>L</kbd> labels</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
