@@ -71,7 +71,7 @@ export function initInfoPanel(app) {
       rows.push(['Distance from Earth', de < 0.05 ? `${fmtNum(de * AU_KM)} km` : `${fmtNum(de, 3)} AU`]);
       rows.push(['Light time from Earth', fmtLight(de * 499.004784)]);
     }
-    if (body.parent && body.rel) {
+    if (body.parent && body.parent !== 'earth' && body.rel) { // Earth's distance is already listed above
       const parent = app.bodies[body.parent];
       rows.push([`Distance from ${parent.data.name}`, `${fmtNum(Math.hypot(body.rel.x, body.rel.y, body.rel.z) * AU_KM)} km`]);
     }
