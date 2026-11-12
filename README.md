@@ -14,6 +14,10 @@ Built with [Three.js](https://threejs.org) and [Vite](https://vitejs.dev). There
 - **Explore.** Click any planet or label to fly to it and follow it. The info panel shows live distance from the Sun and from Earth, light time, orbital speed and ecliptic coordinates.
 - **Details.** Earth has clouds, ocean glint and city lights on the night side. Saturn's rings cast shadows on the planet and the planet shadows the rings. The scene also includes atmospheric halos, a GPU-propagated asteroid belt with Kirkwood gaps and Jupiter trojans, and bloom on the Sun.
 - **Shareable views.** The URL hash keeps the date, the focused body and the scale, e.g. `#t=1969-07-20T20:17Z&body=moon`.
+- **Events.** The calendar button (`V`) opens a drawer of one-click jumps: famous moments (Apollo 8, 11 and 17, the Pioneer and Voyager flybys, the Pale Blue Dot, New Horizons at Pluto, the 2020 Great Conjunction, Halley's 1986 perihelion…) and computed events around the current date: planetary oppositions, conjunctions with the Sun and with each other, greatest elongations of Mercury and Venus, and solar and lunar eclipses. Oppositions and conjunctions are found within a few hours of JPL Horizons (see `tests/events.test.js`).
+- **Measure.** The ruler button (`X`) joins any two bodies with a line and shows their real distance in AU, km and light time, updating as time runs. Click two bodies (or their labels), or choose them from the lists; `Esc` clears.
+- **Scale bar.** In true scale a bar shows a round real length (1 AU, 100,000 km, 1 light-hour…) for the current zoom; in compressed scale a note says that distances and sizes are not to scale.
+- **Screenshots.** The camera button (`K`) saves the current view as a PNG, named by date and body, with the labels, date and a credit line, and copies a link to the same view to the clipboard.
 
 ### Controls
 
@@ -29,6 +33,9 @@ Built with [Three.js](https://threejs.org) and [Vite](https://vitejs.dev). There
 | `0`–`9`, `M` | Sun, planets, Pluto, Moon |
 | `S` `O` `L` `B` `P` | Scale, orbits, labels, asteroids, Pluto |
 | `E` | Eclipse finder |
+| `V` | Events drawer (moments, oppositions, conjunctions, elongations, eclipses) |
+| `X` | Measure the distance between two bodies (`Esc` clears) |
+| `K` | Save a screenshot and copy the share link |
 
 ## Development
 
@@ -59,6 +66,10 @@ src/earthMask.js        Natural Earth coastlines rasterized into Earth's land ma
 src/ui/                 toolbar, time bar, body list, info panel, labels, picking, keyboard
 src/features/           optional feature modules (see below)
 tests/                  unit tests (Vitest) and e2e smoke tests (Playwright)
+src/ephemeris/conjunctions.js  oppositions, conjunctions, greatest elongations (geocentric)
+src/data/events.js      curated moments for the events drawer
+src/ui/events.js, measure.js, scaleBar.js, screenshot.js, toolCluster.js   exploration tools (events drawer, measure, scale bar, PNG capture, icon cluster)
+scripts/fetch-events.mjs   regenerates tests/fixtures/events.json from JPL Horizons
 ```
 
 ### Adding features
@@ -83,7 +94,7 @@ The Vite `base` is set to `./`, so the build works under any repository name. Th
 ## Credits
 
 - Orbital elements: E. M. Standish, JPL Solar System Dynamics — <https://ssd.jpl.nasa.gov/planets/approx_pos.html>
-- Reference ephemerides for tests: NASA JPL Horizons
+- Reference ephemerides for tests: NASA JPL Horizons (including the opposition, conjunction and elongation times in `tests/fixtures/events.json`)
 - Rotation models: IAU Working Group on Cartographic Coordinates and Rotational Elements (2015)
 - Lunar theory, lunar phases and eclipses: J. Meeus, *Astronomical Algorithms* (2nd ed.), chapters 47, 49 and 54
 - Galilean moons: J. Meeus, *Astronomical Algorithms* ch. 44 (after Lieske's E5). Other major moons: JPL Planetary Satellite Mean Elements (<https://ssd.jpl.nasa.gov/sats/elem/>), refined against Horizons by `scripts/fit-satellites.mjs`; parent-relative errors are ≤ 0.33° for every moon over 1950–2050 (Galileans ≈ 0.01° median)
