@@ -39,6 +39,9 @@ registerToggle({ key: 'pluto', label: 'Pluto', shortcut: 'p', order: 40 });
 // ---------------------------------------------------------------------------
 // Renderer & scene
 // ---------------------------------------------------------------------------
+// Reduced motion: camera moves are instant and time starts paused (the user can press play)
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (reduceMotion) state.playing = false;
 const canvas = document.getElementById('scene');
 const isMobile = matchMedia('(max-width: 820px)').matches || /Mobi|Android/i.test(navigator.userAgent);
 // Coastlines are rasterized in a worker while the scene is set up; Earth's full-resolution
@@ -86,7 +89,7 @@ const overviewDistance = () => mapDistance(32, scale.blend) * 1.9 * Math.max(1, 
 /** Shared handle passed to UI and feature modules. */
 const app = {
   THREE, renderer, scene, camera, composer, labelRenderer, rig, system, bodies, sky, belt, state,
-  isMobile, on, emit, overviewDistance,
+  isMobile, reduceMotion, on, emit, overviewDistance,
 };
 if (import.meta.env.DEV) {
   window.__app = { ...app, earthMask: null };
@@ -128,7 +131,7 @@ on('select', (id, opts = {}) => {
     b.label.element.classList.toggle('selected', b.id === id);
     if (b.orbit) b.orbit.material.uniforms.highlight.value = b.id === id ? 1 : 0;
   }
-  rig.flyTo(body, { duration: opts.instant ? 0.001 : 2.2 });
+  rig.flyTo(body, { duration: opts.instant || reduceMotion ? 0.001 : 2.2 });
 });
 
 // ---------------------------------------------------------------------------
@@ -154,7 +157,7 @@ function frame() {
 
   // Animate scale-mode transitions (log-space blend, eased)
   if (scale.blend !== scale.target) {
-    const step = dt / 1.6;
+    const step = reduceMotion ? 1 : dt / 1.6;
     scale.blend = scale.target > scale.blend ? Math.min(scale.target, scale.blend + step) : Math.max(scale.target, scale.blend - step);
   }
   const blendEased = scale.blend * scale.blend * (3 - 2 * scale.blend);

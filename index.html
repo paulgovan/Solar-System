@@ -10,10 +10,10 @@
   </head>
   <body>
     <div id="app">
-      <canvas id="scene"></canvas>
-      <div id="labels"></div>
+      <canvas id="scene" role="img" aria-label="Interactive 3D model of the solar system. Use the body list or number keys to focus a planet."></canvas>
+      <div id="labels" aria-hidden="true"></div>
 
-      <div id="loader">
+      <div id="loader" role="status" aria-live="polite">
         <div class="loader-orbit"><div class="loader-sun"></div><div class="loader-planet"></div></div>
         <p>Calculating planetary positions…</p>
       </div>
@@ -26,7 +26,7 @@
         </div>
       </header>
 
-      <nav id="body-list" class="panel" aria-label="Celestial bodies"></nav>
+      <nav id="body-list" class="panel" aria-label="Celestial bodies" role="navigation"></nav>
 
       <div class="toolbar panel" role="toolbar" aria-label="View options">
         <div class="segmented" role="radiogroup" aria-label="Scale">
@@ -38,7 +38,7 @@
         <button class="icon-btn" id="about-btn" title="About" aria-label="About">?</button>
       </div>
 
-      <aside id="info" class="panel" aria-live="polite">
+      <aside id="info" class="panel" aria-live="polite" aria-label="Selected body" tabindex="-1">
         <button class="close" id="info-close" aria-label="Close">×</button>
         <div class="info-head">
           <span class="swatch"></span>
@@ -48,7 +48,7 @@
           </div>
         </div>
         <p id="info-desc"></p>
-        <dl id="info-live" class="stats live"></dl>
+        <dl id="info-live" class="stats live" aria-live="off"></dl>
         <dl id="info-static" class="stats"></dl>
       </aside>
 

@@ -18,16 +18,22 @@ export function initBodyList() {
     if (b.parent) btn.classList.add('satellite');
     btn.style.setProperty('--c', b.color);
     btn.innerHTML = `<span class="dot"></span>${b.name}<span class="key">${b.key && b.key.length === 1 && /\d/.test(b.key) ? b.key : ''}</span>`;
+    btn.setAttribute('aria-label', `${b.name}${b.type ? `, ${b.type.toLowerCase()}` : ''}${b.key && /\d/.test(b.key) ? `, shortcut ${b.key}` : ''}`);
     btn.addEventListener('click', () => select(b.id));
     list.appendChild(btn);
   }
 
-  const syncSelected = (id) => list.querySelectorAll('button').forEach((x) => x.classList.toggle('active', x.dataset.id === id));
+  const syncSelected = (id) => list.querySelectorAll('button').forEach((x) => {
+    const on = x.dataset.id === id;
+    x.classList.toggle('active', on);
+    x.setAttribute('aria-pressed', on);
+  });
   const syncHidden = () => {
     for (const btn of list.querySelectorAll('button')) {
       const data = BODY_MAP[btn.dataset.id];
       const hidden = (data.toggle && !state.show[data.toggle]) || (data.parent && BODY_MAP[data.parent].toggle && !state.show[BODY_MAP[data.parent].toggle]);
       btn.classList.toggle('hidden-body', !!hidden);
+      btn.setAttribute('aria-disabled', !!hidden);
     }
   };
   on('select', syncSelected);
