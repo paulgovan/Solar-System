@@ -82,6 +82,7 @@ The Vite `base` is set to `./`, so the build works under any repository name.
 - Reference ephemerides for tests: NASA JPL Horizons
 - Rotation models: IAU Working Group on Cartographic Coordinates and Rotational Elements (2015)
 - Lunar theory after P. Schlyter / J. Meeus
+- Galilean moons: J. Meeus, *Astronomical Algorithms* ch. 44 (after Lieske's E5). Other major moons: JPL Planetary Satellite Mean Elements (<https://ssd.jpl.nasa.gov/sats/elem/>), refined against Horizons by `scripts/fit-satellites.mjs`; parent-relative errors are ≤ 0.33° for every moon over 1950–2050 (Galileans ≈ 0.01° median)
 - Simplex noise: Ian McEwan, Stefan Gustavson (Ashima Arts), MIT License
 - Coastlines: [Natural Earth](https://www.naturalearthdata.com) 1:50m land (public domain), via the `world-atlas` package
 - Physical data: NASA Planetary Fact Sheets

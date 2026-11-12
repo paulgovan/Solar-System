@@ -14,7 +14,7 @@ const RADIUS_K = 0.0757; // compressed radius = K · km^0.4  (Earth ≈ 2.5 unit
 const RADIUS_P = 0.4;
 const DIST_P = 0.5;
 const SAT_KNEE = 2.6; // satellites closer than this (in parent radii) keep their true ratio
-const SAT_P = 0.25;
+const SAT_P = 0.5; // 0.5 spreads multi-moon systems (Galileans 3.9–8.3 R, Mimas–Iapetus 2.9–13 R)
 
 export const scale = {
   blend: 1,

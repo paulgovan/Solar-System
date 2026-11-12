@@ -19,7 +19,9 @@
 //   - body.shadowCasters.push(id)         to let one body shadow another
 
 import stars from './stars.js';
+import moons from './moons.js';
 
 export const features = [
   stars,
+  moons,
 ];
