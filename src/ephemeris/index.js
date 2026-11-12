@@ -7,3 +7,4 @@ export * from './moon.js';
 export * from './rotation.js';
 export * from './positions.js';
 export * from './providers.js';
+export * from './eclipses.js';
