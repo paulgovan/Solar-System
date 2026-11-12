@@ -18,6 +18,8 @@ import { createAsteroidBelt } from './scene/asteroids.js';
 import { createSolarSystem } from './scene/solarSystem.js';
 import { createCameraRig } from './camera.js';
 import { loadEarthMask } from './earthMask.js';
+import { startBakeQueue, whenBaked } from './textures/bakeQueue.js';
+import { precompileBakes } from './textures.js';
 import { initToolbar } from './ui/toolbar.js';
 import { initTimeControls } from './ui/timeControls.js';
 import { initBodyList } from './ui/bodyList.js';
@@ -37,8 +39,14 @@ registerToggle({ key: 'pluto', label: 'Pluto', shortcut: 'p', order: 40 });
 // ---------------------------------------------------------------------------
 // Renderer & scene
 // ---------------------------------------------------------------------------
+// Reduced motion: camera moves are instant and time starts paused (the user can press play)
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (reduceMotion) state.playing = false;
 const canvas = document.getElementById('scene');
 const isMobile = matchMedia('(max-width: 820px)').matches || /Mobi|Android/i.test(navigator.userAgent);
+// Coastlines are rasterized in a worker while the scene is set up; Earth's full-resolution
+// bake waits for them (see src/textures/bakeQueue.js).
+const earthMask = loadEarthMask(isMobile ? 2048 : 4096);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.75 : 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -66,7 +74,12 @@ scene.add(sky.group);
 const belt = createAsteroidBelt(isMobile ? 5000 : 9000);
 scene.add(belt.object);
 
-const earthMask = await loadEarthMask(isMobile ? 2048 : 4096);
+// Compile the bake shaders in parallel (KHR_parallel_shader_compile) before the preview
+// bakes need them, including the land-mask variants Earth's full bakes will use.
+await Promise.all([
+  precompileBakes(renderer),
+  precompileBakes(renderer, ['earth', 'earthLights'], { landMask: true }),
+]);
 const system = createSolarSystem(renderer, scene, { onSelect: (id) => select(id), quality: isMobile ? 0.5 : 1, earthMask });
 const { bodies } = system;
 const rig = createCameraRig(camera, canvas);
@@ -76,9 +89,12 @@ const overviewDistance = () => mapDistance(32, scale.blend) * 1.9 * Math.max(1, 
 /** Shared handle passed to UI and feature modules. */
 const app = {
   THREE, renderer, scene, camera, composer, labelRenderer, rig, system, bodies, sky, belt, state,
-  isMobile, on, emit, overviewDistance,
+  isMobile, reduceMotion, on, emit, overviewDistance,
 };
-if (import.meta.env.DEV) window.__app = { ...app, earthMask };
+if (import.meta.env.DEV) {
+  window.__app = { ...app, earthMask: null };
+  earthMask.then((m) => { window.__app.earthMask = m; });
+}
 
 // ---------------------------------------------------------------------------
 // UI
@@ -115,7 +131,7 @@ on('select', (id, opts = {}) => {
     b.label.element.classList.toggle('selected', b.id === id);
     if (b.orbit) b.orbit.material.uniforms.highlight.value = b.id === id ? 1 : 0;
   }
-  rig.flyTo(body, { duration: opts.instant ? 0.001 : 2.2 });
+  rig.flyTo(body, { duration: opts.instant || reduceMotion ? 0.001 : 2.2 });
 });
 
 // ---------------------------------------------------------------------------
@@ -141,7 +157,7 @@ function frame() {
 
   // Animate scale-mode transitions (log-space blend, eased)
   if (scale.blend !== scale.target) {
-    const step = dt / 1.6;
+    const step = reduceMotion ? 1 : dt / 1.6;
     scale.blend = scale.target > scale.blend ? Math.min(scale.target, scale.blend + step) : Math.max(scale.target, scale.blend - step);
   }
   const blendEased = scale.blend * scale.blend * (3 - 2 * scale.blend);
@@ -196,5 +212,21 @@ emit('scale', scale.target);
 if (initialBody && bodies[initialBody]) select(initialBody);
 else emit('select', 'sun', { instant: true });
 
+// Compile the scene's shaders in parallel (for the composer's render target, where the
+// RenderPass draws) so the first frame doesn't compile them one by one.
+{
+  const prev = renderer.getRenderTarget();
+  renderer.setRenderTarget(composer.readBuffer);
+  const ready = renderer.compileAsync(scene, camera);
+  renderer.setRenderTarget(prev);
+  await ready;
+}
 frame();
-setTimeout(() => document.getElementById('loader').classList.add('hidden'), 350);
+performance.mark('app:first-frame');
+requestAnimationFrame(() => document.getElementById('loader').classList.add('hidden'));
+// Upgrade the preview textures to full resolution in idle time
+startBakeQueue(app);
+Promise.all([whenBaked(), earthMask]).then(() => {
+  performance.mark('app:loaded');
+  document.documentElement.dataset.loaded = '';
+});

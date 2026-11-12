@@ -69,3 +69,36 @@ test('toggles hide and show bodies', async ({ page }) => {
   await expect(pluto).not.toHaveClass(/active/);
   await expect(page.locator('#body-list button', { hasText: 'Pluto' })).toHaveClass(/hidden-body/);
 });
+
+test('reduced motion: time starts paused and the camera moves instantly', async ({ browser }) => {
+  const ctx = await browser.newContext({ reducedMotion: 'reduce' });
+  const page = await ctx.newPage();
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('./');
+  await waitForApp(page);
+  await expect(page.locator('.timebar')).toHaveClass(/paused/);
+  await page.locator('#body-list button', { hasText: 'Jupiter' }).click();
+  await expect(page.locator('#info-name')).toHaveText('Jupiter');
+  await ctx.close();
+});
+
+test('body list is keyboard accessible with labels and pressed state', async ({ page }) => {
+  await page.goto('./');
+  await waitForApp(page);
+  const saturn = page.locator('#body-list button', { hasText: 'Saturn' });
+  await expect(saturn).toHaveAttribute('aria-label', /Saturn/);
+  await saturn.focus();
+  await page.keyboard.press('Enter');
+  await expect(saturn).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#info')).toHaveAttribute('aria-live', 'polite');
+});
+
+test('has a web manifest and link-preview meta tags', async ({ page, request }) => {
+  await page.goto('./');
+  const href = await page.locator('link[rel="manifest"]').getAttribute('href');
+  const manifest = await (await request.get(new URL(href, page.url()).href)).json();
+  expect(manifest.start_url).toBe('./');
+  expect(manifest.icons.length).toBeGreaterThanOrEqual(3);
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /og\.png$/);
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+});

@@ -333,6 +333,7 @@ export function registerBakeFunction(name, glsl) {
   if (FN[name]) throw new Error(`Bake function already registered: ${name}`);
   FN[name] = name;
   EXTRA_GLSL.push(glsl);
+  disposeBakeMaterials(); // cached programs predate this function's GLSL
 }
 
 const FN = {
@@ -340,6 +341,58 @@ const FN = {
   mercury: 'mercury', moon: 'moon', mars: 'mars', venus: 'venus',
   jupiter: 'jupiter', saturn: 'saturn', uranus: 'uranus', neptune: 'neptune', pluto: 'pluto',
 };
+
+// Bake materials are cached per (function, land-mask variant), so re-baking a map at
+// another size (src/textures/bakeQueue.js) reuses the compiled program.
+const bakeMaterials = new Map();
+const BAKE_VERTEX = /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
+function bakeMaterial(kind, withMask) {
+  const key = `${kind}|${withMask ? 1 : 0}`;
+  let material = bakeMaterials.get(key);
+  if (!material) {
+    material = new THREE.ShaderMaterial({
+      uniforms: { seed: { value: 0 }, landMask: { value: null } },
+      defines: withMask ? { BODY_FN: FN[kind], LANDMASK: '' } : { BODY_FN: FN[kind] },
+      vertexShader: BAKE_VERTEX,
+      fragmentShader: NOISE + BODY_GLSL + EXTRA_GLSL.join('\n') + BAKE_MAIN,
+      depthTest: false,
+      depthWrite: false,
+    });
+    bakeMaterials.set(key, material);
+  }
+  return material;
+}
+const bakeQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
+const bakeScene = new THREE.Scene().add(bakeQuad);
+const bakeCamera = new THREE.Camera();
+
+/**
+ * Compile bake programs ahead of time, in parallel where the browser supports
+ * KHR_parallel_shader_compile, without blocking the main thread. Defaults to every
+ * registered function without a land mask. Resolves when the programs are ready to
+ * bake without stalling. Call it before frames start: a program's first use makes
+ * synchronous GL queries, which are cheap only while the GPU is idle.
+ */
+export async function precompileBakes(renderer, kinds = Object.keys(FN), { landMask = false } = {}) {
+  const scene = new THREE.Scene();
+  for (const kind of kinds) scene.add(new THREE.Mesh(bakeQuad.geometry, bakeMaterial(kind, landMask)));
+  // Compile for a render-target pass, as bakeTexture renders, not for the screen
+  const rt = new THREE.WebGLRenderTarget(1, 1, { depthBuffer: false });
+  const withTarget = (fn) => {
+    const prev = renderer.getRenderTarget();
+    renderer.setRenderTarget(rt);
+    try { return fn(); } finally { renderer.setRenderTarget(prev); }
+  };
+  await withTarget(() => renderer.compileAsync(scene, bakeCamera));
+  withTarget(() => renderer.render(scene, bakeCamera)); // first use: 1-pixel draws
+  rt.dispose();
+}
+
+/** Free the cached bake programs (they are rebuilt on demand). */
+export function disposeBakeMaterials() {
+  for (const m of bakeMaterials.values()) m.dispose();
+  bakeMaterials.clear();
+}
 
 /**
  * Bake one procedural map. Returns a texture (RGB = sRGB albedo, A = height/mask).
@@ -358,29 +411,20 @@ export function bakeTexture(renderer, kind, width, seed = 0, { landMask = null }
   });
   rt.texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
-  const material = new THREE.ShaderMaterial({
-    uniforms: { seed: { value: seed }, landMask: { value: landMask } },
-    defines: landMask ? { BODY_FN: FN[kind], LANDMASK: '' } : { BODY_FN: FN[kind] },
-    vertexShader: /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
-    fragmentShader: NOISE + BODY_GLSL + EXTRA_GLSL.join('\n') + BAKE_MAIN,
-    depthTest: false,
-    depthWrite: false,
-  });
-  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
-  const scene = new THREE.Scene();
-  scene.add(quad);
-  const cam = new THREE.Camera();
+  const material = bakeMaterial(kind, !!landMask);
+  material.uniforms.seed.value = seed;
+  material.uniforms.landMask.value = landMask;
+  bakeQuad.material = material;
 
   const prevTarget = renderer.getRenderTarget();
   const prevAutoClear = renderer.autoClear;
   renderer.autoClear = true;
   renderer.setRenderTarget(rt);
-  renderer.render(scene, cam);
+  renderer.render(bakeScene, bakeCamera);
   renderer.setRenderTarget(prevTarget);
   renderer.autoClear = prevAutoClear;
 
-  material.dispose();
-  quad.geometry.dispose();
+  material.uniforms.landMask.value = null;
   return rt.texture;
 }
 
