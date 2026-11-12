@@ -16,6 +16,6 @@
 .ml-dist { font-size: 14px; font-weight: 600; color: var(--accent); }
 .ml-sub { font-size: 11px; color: #c6cbda; }
 @media (max-width: 820px) {
-  /* above the body strip and time bar */
-  #measure { bottom: 150px; left: 10px; right: 10px; width: auto; transform: none; }
+  /* under the toolbar (top is set in measure.js) */
+  #measure { left: 10px; right: 10px; width: auto; transform: none; }
 }

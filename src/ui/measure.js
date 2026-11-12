@@ -150,6 +150,12 @@ export function initMeasure(app) {
   const pa = new THREE.Vector3(), pb = new THREE.Vector3();
   /** Per-frame: move the line and refresh the readout. */
   function update() {
+    if (active) {
+      // on narrow screens the card sits under the toolbar, clear of the bottom info sheet
+      const narrow = window.innerWidth <= 820;
+      panel.style.top = narrow ? `${Math.round(document.querySelector('.toolbar').getBoundingClientRect().bottom + 8)}px` : '';
+      panel.style.bottom = narrow ? 'auto' : '';
+    }
     const ready = active && a && b && app.bodies[a] && app.bodies[b];
     const shown = ready && app.bodies[a].group.visible && app.bodies[b].group.visible;
     line.visible = label.visible = !!shown;

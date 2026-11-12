@@ -151,7 +151,7 @@ export function initEventsDrawer(app) {
       // sit just below the toolbar, which wraps to a second row on narrower screens
       const top = Math.round(document.querySelector('.toolbar').getBoundingClientRect().bottom + 8);
       panel.style.top = `${top}px`;
-      panel.style.maxHeight = `calc(100% - ${top + 110}px)`;
+      panel.style.maxHeight = `calc(100% - ${top + (window.innerWidth <= 820 ? 150 : 110)}px)`; // clear of the time bar / body strip
       computed = null; render(); body.scrollTop = 0;
     }
   }
