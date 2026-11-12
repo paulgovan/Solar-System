@@ -43,7 +43,7 @@ export function initInfoPanel(app) {
     $('#info-type').textContent = d.type || '';
     $('#info-desc').textContent = d.description || '';
     const rows = [
-      d.radiusKm && ['Radius', `${fmtNum(d.radiusKm)} km`],
+      d.radiusKm && d.showRadius !== false && ['Radius', `${fmtNum(d.radiusKm)} km`],
       d.periodDays && [d.parent ? 'Orbit (sidereal)' : 'Year length', fmtPeriod(d.periodDays)],
       d.dayHours && ['Rotation', fmtDuration(d.dayHours)],
       d.tiltDeg !== undefined && ['Axial tilt', `${d.tiltDeg}°`],

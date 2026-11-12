@@ -18,4 +18,10 @@
 //   - app.on(event, fn), app.bodies, app.scene, app.camera, app.rig, app.renderer …
 //   - body.shadowCasters.push(id)         to let one body shadow another
 
-export const features = [];
+import smallBodies from './smallBodies.js';
+import spacecraft from './spacecraft.js';
+
+export const features = [
+  smallBodies,
+  spacecraft,
+];

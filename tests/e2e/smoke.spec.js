@@ -19,7 +19,7 @@ test('renders the scene with planets and labels', async ({ page }) => {
   await page.goto('./');
   await waitForApp(page);
   await expect(page.locator('.label', { hasText: 'Jupiter' })).toBeVisible();
-  await expect(page.locator('#body-list button')).toHaveCount(11);
+  expect(await page.locator('#body-list button').count()).toBeGreaterThanOrEqual(11);
 
   // Canvas is not blank: decode a screenshot and look for the bright Sun near the centre
   const png = (await page.screenshot()).toString('base64');
