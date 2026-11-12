@@ -7,7 +7,8 @@
 //   orbit: { kind, ... }                orbit provider (see src/ephemeris/providers.js);
 //                                       `compressedRadii` overrides a satellite's compressed distance
 //   texture                             bake function name (defaults to id); textureSize, bump,
-//                                       softTerminator, ocean, nightLights, clouds, atmosphere, rings
+//                                       softTerminator, ocean, nightLights, clouds, atmosphere,
+//                                       rings: { innerKm, outerKm, map? | profile? (RING_PROFILES key) }
 //   star                                render as the Sun
 //   toggle                              body is shown only while this toolbar toggle is on
 //   labelPriority                       0 = always shown … higher values hide first when labels overlap
@@ -111,3 +112,8 @@ export function bodiesInUpdateOrder() {
   const depth = (b) => (b.parent ? 1 + depth(BODY_MAP[b.parent]) : 0);
   return [...BODIES].sort((a, b) => depth(a) - depth(b));
 }
+
+// Faint ring systems: radial profiles live in RING_PROFILES (src/textures.js).
+Object.assign(BODY_MAP.jupiter, { rings: { innerKm: 92000, outerKm: 226000, profile: 'jupiter' } });
+Object.assign(BODY_MAP.uranus, { rings: { innerKm: 37850, outerKm: 51300, profile: 'uranus' } });
+Object.assign(BODY_MAP.neptune, { rings: { innerKm: 40900, outerKm: 63100, profile: 'neptune' } });

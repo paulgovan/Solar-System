@@ -21,9 +21,13 @@
 import stars from './stars.js';
 import moons from './moons.js';
 import eclipses from './eclipses.js';
+import imagery from './imagery.js';
+import lensFlare from './lensFlare.js';
 
 export const features = [
   stars,
   moons,
   eclipses,
+  imagery,
+  lensFlare,
 ];

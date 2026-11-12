@@ -90,6 +90,8 @@ The Vite `base` is set to `./`, so the build works under any repository name.
 - Physical data: NASA Planetary Fact Sheets
 - Stars: Yale Bright Star Catalogue, 5th revised ed. (Hoffleit & Warren 1991), public domain; converted by `scripts/build-stars.mjs`
 - Constellation lines and names: [d3-celestial](https://github.com/ofrohn/d3-celestial) © 2015 Olaf Frohn, BSD-3-Clause
+- Surface imagery (public domain; fetched and resized by `scripts/fetch-imagery.mjs` and `scripts/build-imagery.mjs` into `public/textures/`): NASA Earth Observatory Blue Marble Next Generation (July 2004), Black Marble 2016 and Blue Marble clouds; NASA SVS CGI Moon Kit (LRO WAC colour, LOLA elevation); USGS Astrogeology MESSENGER MDIS BDR, Viking colourised MDIM and New Horizons Pluto mosaics; Cassini PIA07782 Jupiter map (NASA/JPL/University of Arizona)
+- Ring radii: NASA Planetary Ring Fact Sheets
 
 ## License
 

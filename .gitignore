@@ -4,3 +4,4 @@ dist
 .claude/
 test-results
 playwright-report
+imagery-src

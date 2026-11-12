@@ -8,7 +8,7 @@ import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { bodiesInUpdateOrder } from '../bodies.js';
 import { orientation, hasOrientation, equatorialToEcliptic, getOrbitProvider, frameContext, J2000 } from '../ephemeris/index.js';
 import { mapPosition, mapRadius, mapSatelliteOffset, eclToScene } from '../scale.js';
-import { bakeTexture, makeSaturnRingTexture, makeGlowTexture } from '../textures.js';
+import { bakeTexture, makeSaturnRingTexture, makeGlowTexture, makeRingTexture, RING_PROFILES } from '../textures.js';
 import {
   createPlanetMaterial, createCloudMaterial, createAtmosphereMaterial, createRingMaterial,
   createSunMaterial, createOrbitMaterial, MAX_SHADOW_CASTERS,
@@ -66,7 +66,7 @@ function createPlanetVisual(body, { renderer, quality, earthMask, ringTex }) {
   const map = bakeTexture(renderer, kind, size, seed, opts);
   const nightMap = data.nightLights ? bakeTexture(renderer, 'earthLights', size, seed, opts) : null;
   const rings = data.rings ? {
-    map: data.rings.map || ringTex, inner: data.rings.innerKm / data.radiusKm, outer: data.rings.outerKm / data.radiusKm,
+    map: data.rings.map || (data.rings.profile ? makeRingTexture(RING_PROFILES[data.rings.profile]) : ringTex), inner: data.rings.innerKm / data.radiusKm, outer: data.rings.outerKm / data.radiusKm,
   } : null;
   body.material = createPlanetMaterial({
     map, nightMap, bumpScale: data.bump || 0,

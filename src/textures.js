@@ -442,3 +442,87 @@ export function makeGlowTexture(stops, size = 256) {
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
+
+// ---------------------------------------------------------------------------
+// Faint ring systems (Jupiter, Uranus, Neptune)
+// ---------------------------------------------------------------------------
+// A profile lists ring bands by radius from the planet centre (km). `tau` is the
+// drawn density (0..1, roughly optical depth scaled for visibility; the real dusty
+// rings are far thinner). Narrow rings a few km wide would vanish between texels,
+// so bands are drawn at least `minWidthKm` wide; their `tau` is the value at full
+// width. Sources: NASA Planetary Ring Fact Sheets; de Pater et al., Icarus (2006).
+export const RING_PROFILES = {
+  jupiter: {
+    innerKm: 92000, outerKm: 226000, color: [0.72, 0.6, 0.5], grain: 0.15,
+    bands: [
+      { from: 92000, to: 122500, tau: 0.03, ramp: 'up' }, // halo (thickens toward the main ring)
+      { from: 122500, to: 129000, tau: 0.16 }, // main ring
+      { from: 129000, to: 182000, tau: 0.03, ramp: 'down' }, // Amalthea gossamer ring
+      { from: 129000, to: 226000, tau: 0.018, ramp: 'down' }, // Thebe gossamer ring
+    ],
+  },
+  uranus: {
+    innerKm: 37850, outerKm: 51300, color: [0.42, 0.42, 0.44], minWidthKm: 60, grain: 0.1,
+    bands: [
+      { from: 37850, to: 41350, tau: 0.035 }, // ζ (dusty)
+      { at: 41837, width: 2, tau: 0.3 }, // 6
+      { at: 42234, width: 2, tau: 0.3 }, // 5
+      { at: 42571, width: 2, tau: 0.3 }, // 4
+      { at: 44718, width: 10, tau: 0.45 }, // α
+      { at: 45661, width: 9, tau: 0.4 }, // β
+      { at: 47176, width: 2, tau: 0.3 }, // η
+      { at: 47627, width: 3, tau: 0.5 }, // γ
+      { at: 48300, width: 6, tau: 0.5 }, // δ
+      { at: 50023, width: 2, tau: 0.15 }, // λ (dusty)
+      { at: 51149, width: 60, tau: 0.75 }, // ε (20–96 km, the brightest)
+    ],
+  },
+  neptune: {
+    innerKm: 40900, outerKm: 63100, color: [0.55, 0.48, 0.44], minWidthKm: 90, grain: 0.12,
+    bands: [
+      { from: 40900, to: 42900, tau: 0.05 }, // Galle (broad, faint)
+      { at: 53200, width: 113, tau: 0.35 }, // Le Verrier
+      { from: 53200, to: 57200, tau: 0.025 }, // Lassell (faint sheet)
+      { at: 57200, width: 100, tau: 0.12 }, // Arago
+      { at: 62932, width: 50, tau: 0.45 }, // Adams (its bright arcs are not modelled)
+    ],
+  },
+};
+
+/** Radial ring profile → 1D texture (RGB = sRGB colour, A = density), mipmapped. */
+export function makeRingTexture(profile, width = 2048) {
+  const { innerKm, outerKm, bands, color, minWidthKm = 0, grain = 0 } = profile;
+  const data = new Uint8Array(width * 4);
+  const kmPerTexel = (outerKm - innerKm) / width;
+  let seed = 11;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const ranges = bands.map((b) => {
+    let from = b.from ?? b.at - b.width / 2, to = b.to ?? b.at + b.width / 2;
+    const w = Math.max(to - from, minWidthKm);
+    const mid = (from + to) / 2;
+    if (b.at !== undefined) { from = mid - w / 2; to = mid + w / 2; }
+    return { ...b, from, to };
+  });
+  for (let i = 0; i < width; i++) {
+    const r0 = innerKm + i * kmPerTexel, r1 = r0 + kmPerTexel;
+    let d = 0;
+    for (const b of ranges) {
+      const cover = Math.max(0, Math.min(r1, b.to) - Math.max(r0, b.from)) / kmPerTexel;
+      if (!cover) continue;
+      const u = ((r0 + r1) / 2 - b.from) / (b.to - b.from);
+      const ramp = b.ramp === 'up' ? u * u : b.ramp === 'down' ? (1 - u) ** 2 : 1;
+      d += b.tau * cover * ramp;
+    }
+    d *= 1 - grain + 2 * grain * rand();
+    data[i * 4 + 0] = color[0] * 255;
+    data[i * 4 + 1] = color[1] * 255;
+    data[i * 4 + 2] = color[2] * 255;
+    data[i * 4 + 3] = Math.min(255, Math.round(Math.min(1, d) * 255));
+  }
+  const tex = new THREE.DataTexture(data, width, 1, THREE.RGBAFormat);
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.generateMipmaps = true;
+  tex.needsUpdate = true;
+  return tex;
+}
