@@ -1,63 +1,131 @@
 // The Moon's geocentric position.
+//
+// J. Meeus, Astronomical Algorithms (2nd ed.), chapter 47: the ELP-2000/82 lunar
+// theory truncated to its main periodic terms (accuracy about 10″ in longitude and
+// 4″ in latitude). The series gives the geometric position referred to the mean
+// ecliptic and equinox of date; it is rotated to the J2000 ecliptic with the
+// rigorous ecliptic precession of Meeus chapter 21.
 
 import { DEG, AU_KM } from './constants.js';
-import { solveKepler, wrapPi } from './kepler.js';
 
-// ---------------------------------------------------------------------------
-// Moon — low-precision geocentric series (after P. Schlyter / Meeus),
-// converted to the J2000 ecliptic by removing general precession.
-// ---------------------------------------------------------------------------
-
-const EARTH_RADIUS_KM = 6371.0;
 export const EARTH_MOON_MASS_RATIO = 81.3005678;
+const ARCSEC = DEG / 3600;
 
-/** Geocentric ecliptic J2000 position of the Moon, AU. */
-export function moonGeocentric(T) {
-  const d = T * 36525 + 1.5; // days since 1999 Dec 31.0 TT
-  const N = (125.1228 - 0.0529538083 * d) * DEG;
-  const i = 5.1454 * DEG;
-  const w = (318.0634 + 0.1643573223 * d) * DEG;
-  const a = 60.2666; // Earth radii
-  const e = 0.0549;
-  const M = (115.3654 + 13.0649929509 * d) * DEG;
+// Table 47.A — longitude (Σl, 1e-6°, sine) and distance (Σr, 1e-3 km, cosine).
+// Columns: D, M, M′, F, Σl, Σr
+// prettier-ignore
+const LR = [
+  [0, 0, 1, 0, 6288774, -20905355], [2, 0, -1, 0, 1274027, -3699111], [2, 0, 0, 0, 658314, -2955968],
+  [0, 0, 2, 0, 213618, -569925], [0, 1, 0, 0, -185116, 48888], [0, 0, 0, 2, -114332, -3149],
+  [2, 0, -2, 0, 58793, 246158], [2, -1, -1, 0, 57066, -152138], [2, 0, 1, 0, 53322, -170733],
+  [2, -1, 0, 0, 45758, -204586], [0, 1, -1, 0, -40923, -129620], [1, 0, 0, 0, -34720, 108743],
+  [0, 1, 1, 0, -30383, 104755], [2, 0, 0, -2, 15327, 10321], [0, 0, 1, 2, -12528, 0],
+  [0, 0, 1, -2, 10980, 79661], [4, 0, -1, 0, 10675, -34782], [0, 0, 3, 0, 10034, -23210],
+  [4, 0, -2, 0, 8548, -21636], [2, 1, -1, 0, -7888, 24208], [2, 1, 0, 0, -6766, 30824],
+  [1, 0, -1, 0, -5163, -8379], [1, 1, 0, 0, 4987, -16675], [2, -1, 1, 0, 4036, -12831],
+  [2, 0, 2, 0, 3994, -10445], [4, 0, 0, 0, 3861, -11650], [2, 0, -3, 0, 3665, 14403],
+  [0, 1, -2, 0, -2689, -7003], [2, 0, -1, 2, -2602, 0], [2, -1, -2, 0, 2390, 10056],
+  [1, 0, 1, 0, -2348, 6322], [2, -2, 0, 0, 2236, -9884], [0, 1, 2, 0, -2120, 5751],
+  [0, 2, 0, 0, -2069, 0], [2, -2, -1, 0, 2048, -4950], [2, 0, 1, -2, -1773, 4130],
+  [2, 0, 0, 2, -1595, 0], [4, -1, -1, 0, 1215, -3958], [0, 0, 2, 2, -1110, 0],
+  [3, 0, -1, 0, -892, 3258], [2, 1, 1, 0, -810, 2616], [4, -1, -2, 0, 759, -1897],
+  [0, 2, -1, 0, -713, -2117], [2, 2, -1, 0, -700, 2354], [2, 1, -2, 0, 691, 0],
+  [2, -1, 0, -2, 596, 0], [4, 0, 1, 0, 549, -1423], [0, 0, 4, 0, 537, -1117],
+  [4, -1, 0, 0, 520, -1571], [1, 0, -2, 0, -487, -1739], [2, 1, 0, -2, -399, 0],
+  [0, 0, 2, -2, -381, -4421], [1, 1, 1, 0, 351, 0], [3, 0, -2, 0, -340, 0],
+  [4, 0, -3, 0, 330, 0], [2, -1, 2, 0, 327, 0], [0, 2, 1, 0, -323, 1165],
+  [1, 1, -1, 0, 299, 0], [2, 0, 3, 0, 294, 0], [2, 0, -1, -2, 0, 8752],
+];
 
-  const E = solveKepler(wrapPi(M), e);
-  const xv = a * (Math.cos(E) - e);
-  const yv = a * Math.sqrt(1 - e * e) * Math.sin(E);
-  const v = Math.atan2(yv, xv);
-  let r = Math.hypot(xv, yv);
+// Table 47.B — latitude (Σb, 1e-6°, sine). Columns: D, M, M′, F, Σb
+// prettier-ignore
+const B = [
+  [0, 0, 0, 1, 5128122], [0, 0, 1, 1, 280602], [0, 0, 1, -1, 277693], [2, 0, 0, -1, 173237],
+  [2, 0, -1, 1, 55413], [2, 0, -1, -1, 46271], [2, 0, 0, 1, 32573], [0, 0, 2, 1, 17198],
+  [2, 0, 1, -1, 9266], [0, 0, 2, -1, 8822], [2, -1, 0, -1, 8216], [2, 0, -2, -1, 4324],
+  [2, 0, 1, 1, 4200], [2, 1, 0, -1, -3359], [2, -1, -1, 1, 2463], [2, -1, 0, 1, 2211],
+  [2, -1, -1, -1, 2065], [0, 1, -1, -1, -1870], [4, 0, -1, -1, 1828], [0, 1, 0, 1, -1794],
+  [0, 0, 0, 3, -1749], [0, 1, -1, 1, -1565], [1, 0, 0, 1, -1491], [0, 1, 1, 1, -1475],
+  [0, 1, 1, -1, -1410], [0, 1, 0, -1, -1344], [1, 0, 0, -1, -1335], [0, 0, 3, 1, 1107],
+  [4, 0, 0, -1, 1021], [4, 0, -1, 1, 833], [0, 0, 1, -3, 777], [4, 0, -2, 1, 671],
+  [2, 0, 0, -3, 607], [2, 0, 2, -1, 596], [2, -1, 1, -1, 491], [2, 0, -2, 1, -451],
+  [0, 0, 3, -1, 439], [2, 0, 2, 1, 422], [2, 0, -3, -1, 421], [2, 1, -1, 1, -366],
+  [2, 1, 0, 1, -351], [4, 0, 0, 1, 331], [2, -1, 1, 1, 315], [2, -2, 0, -1, 302],
+  [0, 0, 1, 3, -283], [2, 1, 1, -1, -229], [1, 1, 0, -1, 223], [1, 1, 0, 1, 223],
+  [0, 1, -2, -1, -220], [2, 1, -1, -1, -220], [1, 0, 1, 1, -185], [2, -1, -2, -1, 181],
+  [0, 1, 2, 1, -177], [4, 0, -2, -1, 176], [4, -1, -1, -1, 166], [1, 0, 1, -1, -164],
+  [4, 0, 1, -1, 132], [1, 0, -1, -1, -119], [4, -1, 0, -1, 115], [2, -2, 0, 1, 107],
+];
 
-  const xh = r * (Math.cos(N) * Math.cos(v + w) - Math.sin(N) * Math.sin(v + w) * Math.cos(i));
-  const yh = r * (Math.sin(N) * Math.cos(v + w) + Math.cos(N) * Math.sin(v + w) * Math.cos(i));
-  const zh = r * Math.sin(v + w) * Math.sin(i);
-  let lon = Math.atan2(yh, xh);
-  let lat = Math.atan2(zh, Math.hypot(xh, yh));
+const mod360 = (x) => ((x % 360) + 360) % 360;
 
-  // Perturbations
-  const Ms = (356.047 + 0.9856002585 * d) * DEG;
-  const ws = (282.9404 + 4.70935e-5 * d) * DEG;
-  const Ls = Ms + ws;
-  const Lm = M + w + N;
-  const D = Lm - Ls;
-  const F = Lm - N;
-  const s = Math.sin, c = Math.cos;
-  lon += DEG * (
-    -1.274 * s(M - 2 * D) + 0.658 * s(2 * D) - 0.186 * s(Ms) - 0.059 * s(2 * M - 2 * D)
-    - 0.057 * s(M - 2 * D + Ms) + 0.053 * s(M + 2 * D) + 0.046 * s(2 * D - Ms)
-    + 0.041 * s(M - Ms) - 0.035 * s(D) - 0.031 * s(M + Ms) - 0.015 * s(2 * F - 2 * D)
-    + 0.011 * s(M - 4 * D));
-  lat += DEG * (
-    -0.173 * s(F - 2 * D) - 0.055 * s(M - F - 2 * D) - 0.046 * s(M + F - 2 * D)
-    + 0.033 * s(F + 2 * D) + 0.017 * s(2 * M + F));
-  r += -0.58 * c(M - 2 * D) - 0.46 * c(2 * D);
+/**
+ * Geometric geocentric Moon referred to the mean ecliptic and equinox of date
+ * (Meeus 47). T in Julian centuries of TT from J2000.
+ * Returns { lambda, beta } in degrees and { delta } in km.
+ */
+export function moonEclipticOfDate(T) {
+  const T2 = T * T, T3 = T2 * T, T4 = T3 * T;
+  const Lp = mod360(218.3164477 + 481267.88123421 * T - 0.0015786 * T2 + T3 / 538841 - T4 / 65194000);
+  const D = mod360(297.8501921 + 445267.1114034 * T - 0.0018819 * T2 + T3 / 545868 - T4 / 113065000);
+  const M = mod360(357.5291092 + 35999.0502909 * T - 0.0001536 * T2 + T3 / 24490000);
+  const Mp = mod360(134.9633964 + 477198.8675055 * T + 0.0087414 * T2 + T3 / 69699 - T4 / 14712000);
+  const F = mod360(93.272095 + 483202.0175233 * T - 0.0036539 * T2 - T3 / 3526000 + T4 / 863310000);
+  const A1 = mod360(119.75 + 131.849 * T);
+  const A2 = mod360(53.09 + 479264.29 * T);
+  const A3 = mod360(313.45 + 481266.484 * T);
+  const E = 1 - 0.002516 * T - 0.0000074 * T2;
+  const Ef = [1, E, E * E];
 
-  // Ecliptic of date → J2000 (remove accumulated general precession in longitude)
-  lon -= 1.396971 * T * DEG;
+  const d = D * DEG, m = M * DEG, mp = Mp * DEG, f = F * DEG;
+  let sl = 0, sr = 0, sb = 0;
+  for (const [cD, cM, cMp, cF, l, r] of LR) {
+    const arg = cD * d + cM * m + cMp * mp + cF * f;
+    const e = Ef[Math.abs(cM)];
+    if (l) sl += l * e * Math.sin(arg);
+    if (r) sr += r * e * Math.cos(arg);
+  }
+  for (const [cD, cM, cMp, cF, b] of B) {
+    sb += b * Ef[Math.abs(cM)] * Math.sin(cD * d + cM * m + cMp * mp + cF * f);
+  }
+  const s = (x) => Math.sin(x * DEG);
+  sl += 3958 * s(A1) + 1962 * s(Lp - F) + 318 * s(A2);
+  sb += -2235 * s(Lp) + 382 * s(A3) + 175 * s(A1 - F) + 175 * s(A1 + F) + 127 * s(Lp - Mp) - 115 * s(Lp + Mp);
 
-  const rAU = (r * EARTH_RADIUS_KM) / AU_KM;
   return {
-    x: rAU * Math.cos(lat) * Math.cos(lon),
-    y: rAU * Math.cos(lat) * Math.sin(lon),
-    z: rAU * Math.sin(lat),
+    lambda: mod360(Lp + sl / 1e6),
+    beta: sb / 1e6,
+    delta: 385000.56 + sr / 1000,
+  };
+}
+
+/**
+ * Precess ecliptic coordinates (radians) from the ecliptic and equinox of date T
+ * (centuries from J2000) to J2000 — Meeus eq. 21.5 / 21.7.
+ */
+export function eclipticDateToJ2000(lambda, beta, T) {
+  const t = -T;
+  const t2 = t * t, t3 = t2 * t, T2 = T * T;
+  const eta = ((47.0029 - 0.06603 * T + 0.000598 * T2) * t + (-0.03302 + 0.000598 * T) * t2 + 0.00006 * t3) * ARCSEC;
+  const Pi = 174.876384 * DEG + (3289.4789 * T + 0.60622 * T2 - (869.8089 + 0.50491 * T) * t + 0.03536 * t2) * ARCSEC;
+  const p = ((5029.0966 + 2.22226 * T - 0.000042 * T2) * t + (1.11113 - 0.000042 * T) * t2 - 0.000006 * t3) * ARCSEC;
+  const ce = Math.cos(eta), se = Math.sin(eta);
+  const cb = Math.cos(beta), sb = Math.sin(beta);
+  const sPl = Math.sin(Pi - lambda), cPl = Math.cos(Pi - lambda);
+  const A = ce * cb * sPl - se * sb;
+  const Bv = cb * cPl;
+  const C = ce * sb + se * cb * sPl;
+  return { lambda: p + Pi - Math.atan2(A, Bv), beta: Math.asin(Math.max(-1, Math.min(1, C))) };
+}
+
+/** Geocentric ecliptic J2000 position of the Moon, AU. T: Julian centuries of TT from J2000. */
+export function moonGeocentric(T) {
+  const m = moonEclipticOfDate(T);
+  const { lambda, beta } = eclipticDateToJ2000(m.lambda * DEG, m.beta * DEG, T);
+  const r = m.delta / AU_KM;
+  return {
+    x: r * Math.cos(beta) * Math.cos(lambda),
+    y: r * Math.cos(beta) * Math.sin(lambda),
+    z: r * Math.sin(beta),
   };
 }

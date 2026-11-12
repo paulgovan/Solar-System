@@ -73,7 +73,7 @@
           <button class="close" id="about-close" aria-label="Close">×</button>
           <h2>About this orrery</h2>
           <p>Planet positions are computed in your browser from JPL’s Keplerian orbital elements (E. M. Standish), solving Kepler’s equation for each planet. They agree with NASA JPL Horizons to within a few arcminutes between 1800 and 2050, and stay within a fraction of a degree from 3000 BC to 3000 AD.</p>
-          <p>Planet spin axes and rotation follow the IAU WGCCRE models, so the day/night side and Saturn’s ring tilt are correct for the date shown. The Moon uses a low-precision lunar theory. The Milky Way is placed in its true position on the sky.</p>
+          <p>Planet spin axes and rotation follow the IAU WGCCRE models, so the day/night side and Saturn’s ring tilt are correct for the date shown. The Moon follows Meeus’ truncated ELP-2000/82 lunar theory, and eclipses are computed from the true Sun–Earth–Moon geometry. The Milky Way is placed in its true position on the sky.</p>
           <p><strong>Compressed scale</strong> keeps every direction exact but shrinks distances (square root) and enlarges planets so you can see them. <strong>True scale</strong> uses real distances and sizes — the planets become specks, which is what space is really like.</p>
           <p>Earth’s coastlines come from Natural Earth map data; its colours, clouds and city lights are approximations. Other surfaces are generated procedurally and are artistic, not maps.</p>
           <h3>Controls</h3>
@@ -81,7 +81,7 @@
             <li><kbd>Drag</kbd> rotate · <kbd>Scroll</kbd>/<kbd>Pinch</kbd> zoom · <kbd>Right-drag</kbd> pan</li>
             <li><kbd>Click</kbd> a planet to fly to it · <kbd>Double-click</kbd> space or <kbd>Esc</kbd> for overview</li>
             <li><kbd>Space</kbd> play/pause · <kbd>[</kbd> <kbd>]</kbd> speed · <kbd>R</kbd> reverse · <kbd>N</kbd> now</li>
-            <li><kbd>1</kbd>–<kbd>9</kbd> planets · <kbd>S</kbd> scale · <kbd>O</kbd> orbits · <kbd>L</kbd> labels</li>
+            <li><kbd>1</kbd>–<kbd>9</kbd> planets · <kbd>S</kbd> scale · <kbd>O</kbd> orbits · <kbd>L</kbd> labels · <kbd>E</kbd> eclipses</li>
           </ul>
         </div>
       </div>

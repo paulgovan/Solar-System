@@ -13,6 +13,51 @@ export const MAX_SHADOW_CASTERS = 4;
 const OUTPUT_F = /* glsl */ `#include <tonemapping_fragment>\n#include <colorspace_fragment>\n`;
 
 // ---------------------------------------------------------------------------
+// Eclipse hook (planet + cloud materials). A feature fills the uniforms from true
+// physical geometry, in units of this body's radius and world (scene) orientation,
+// so the result is independent of the scale mode. eclOcc.w = 0 disables it.
+//   eclOcc  xyz: occluder centre relative to this body's centre; w: occluder radius
+//   eclSun  xyz: Sun centre relative to this body's centre;      w: Sun angular radius (rad)
+//   eclTint light refracted into the umbra (e.g. through Earth's atmosphere onto the Moon)
+// eclipseLight(p) for a surface point p (body radii) → (fraction of the Sun's disk
+// visible, depth inside the umbra 0…1).
+// ---------------------------------------------------------------------------
+export const eclipseUniforms = () => ({
+  eclOcc: { value: new THREE.Vector4(0, 0, 0, 0) },
+  eclSun: { value: new THREE.Vector4(0, 0, 1, 0.004652) },
+  eclTint: { value: new THREE.Color(0, 0, 0) },
+});
+const ECLIPSE_F = /* glsl */ `
+  uniform vec4 eclOcc;
+  uniform vec4 eclSun;
+  uniform vec3 eclTint;
+  // Fraction of a disk of angular radius a hidden by a disk of radius b at separation d.
+  float discCover(float a, float b, float d) {
+    if (d >= a + b) return 0.0;
+    if (d <= abs(b - a)) return b >= a ? 1.0 : (b * b) / (a * a);
+    float a2 = a * a, b2 = b * b, d2 = d * d;
+    float k1 = acos(clamp((d2 + a2 - b2) / (2.0 * d * a), -1.0, 1.0));
+    float k2 = acos(clamp((d2 + b2 - a2) / (2.0 * d * b), -1.0, 1.0));
+    float k3 = sqrt(max(0.0, (a + b - d) * (d + a - b) * (d - a + b) * (d + a + b)));
+    return clamp((a2 * k1 + b2 * k2 - 0.5 * k3) / (3.14159265 * a2), 0.0, 1.0);
+  }
+  vec2 eclipseLight(vec3 p) {
+    if (eclOcc.w <= 0.0) return vec2(1.0, 0.0);
+    vec3 toO = eclOcc.xyz - p;
+    vec3 s = normalize(eclSun.xyz - p);
+    float dO = length(toO);
+    vec3 o = toO / dO;
+    float cs = dot(o, s);
+    if (cs <= 0.0) return vec2(1.0, 0.0);
+    float b = asin(min(1.0, eclOcc.w / dO));
+    float a = eclSun.w;
+    float d = atan(length(cross(o, s)), cs); // precise for small angles
+    float depth = b > a ? clamp((b - a - d) / (b - a), 0.0, 1.0) : 0.0;
+    return vec2(1.0 - discCover(a, b, d), depth);
+  }
+`;
+
+// ---------------------------------------------------------------------------
 // Planet surface
 // ---------------------------------------------------------------------------
 export function createPlanetMaterial({
@@ -43,6 +88,7 @@ export function createPlanetMaterial({
       casters: { value: Array.from({ length: MAX_SHADOW_CASTERS }, () => new THREE.Vector4()) },
       casterCount: { value: 0 },
       sunAngle: { value: 0.004652 },
+      ...eclipseUniforms(),
     },
     vertexShader: LOGDEPTH_V_PARS + /* glsl */ `
       varying vec2 vUv;
@@ -85,6 +131,7 @@ export function createPlanetMaterial({
       varying vec3 vN;
       varying vec3 vEast;
       varying vec3 vNorth;
+      ${ECLIPSE_F}
 
       void main(){
         ${LOGDEPTH_F}
@@ -141,13 +188,18 @@ export function createPlanetMaterial({
           diffuse *= 1.0 - cover;
         }
 
-        vec3 color = albedo * (diffuse * 1.15 + 0.012);
+        // Eclipses: Sun partly or wholly hidden; refracted light tints the umbra
+        vec2 ecl = eclipseLight(N);
+        float umbraGlow = smoothstep(0.55, 1.0, 1.0 - ecl.x) * mix(1.0, 0.4, ecl.y) * diffuse;
+        diffuse *= ecl.x;
+
+        vec3 color = albedo * (diffuse * 1.15 + 0.012 + eclTint * umbraGlow);
 
         #ifdef OCEAN
           float ocean = 1.0 - smoothstep(0.0, 0.04, tex.a);
           vec3 H = normalize(L + V);
           float spec = pow(max(dot(N, H), 0.0), 400.0) * 0.5 + pow(max(dot(N, H), 0.0), 40.0) * 0.05;
-          color += vec3(1.0, 0.92, 0.8) * spec * ocean * smoothstep(0.0, 0.15, ndlGeo);
+          color += vec3(1.0, 0.92, 0.8) * spec * ocean * smoothstep(0.0, 0.15, ndlGeo) * ecl.x;
         #endif
 
         #ifdef NIGHT
@@ -157,7 +209,7 @@ export function createPlanetMaterial({
 
         // Atmospheric rim lighting
         float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-        float day = smoothstep(-0.3, 0.45, ndlGeo);
+        float day = smoothstep(-0.3, 0.45, ndlGeo) * ecl.x;
         color += atmColor * fres * atmStrength * day * 0.9;
         color = mix(color, atmColor * diffuse, fres * atmStrength * 0.25);
 
@@ -170,7 +222,7 @@ export function createPlanetMaterial({
 // Cloud layer (Earth)
 export function createCloudMaterial(map) {
   return new THREE.ShaderMaterial({
-    uniforms: { map: { value: map } },
+    uniforms: { map: { value: map }, ...eclipseUniforms() },
     transparent: true,
     depthWrite: false,
     vertexShader: LOGDEPTH_V_PARS + /* glsl */ `
@@ -186,12 +238,13 @@ export function createCloudMaterial(map) {
     fragmentShader: LOGDEPTH_F_PARS + /* glsl */ `
       uniform sampler2D map;
       varying vec2 vUv; varying vec3 vWorldPos; varying vec3 vN;
+      ${ECLIPSE_F}
       void main(){
         ${LOGDEPTH_F}
         float a = texture2D(map, vUv).a;
         vec3 L = normalize(-vWorldPos);
         float ndl = dot(normalize(vN), L);
-        float lit = smoothstep(-0.15, 0.25, ndl);
+        float lit = smoothstep(-0.15, 0.25, ndl) * eclipseLight(normalize(vN)).x;
         vec3 col = mix(vec3(0.02, 0.025, 0.04), vec3(1.0, 0.98, 0.95), lit);
         // reddish terminator
         col = mix(col, vec3(1.0, 0.55, 0.35), smoothstep(0.25, 0.0, abs(ndl - 0.02)) * 0.35);

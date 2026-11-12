@@ -7,7 +7,8 @@ Built with [Three.js](https://threejs.org) and [Vite](https://vitejs.dev). There
 ## Features
 
 - **Accurate positions.** Heliocentric positions come from JPL's *Keplerian Elements for Approximate Positions of the Major Planets* (E. M. Standish), with Kepler's equation solved for each planet. The test suite checks them against NASA JPL Horizons: errors are a few arcminutes or less from 1800 to 2050, and stay small from 3000 BC to 3000 AD.
-- **Real orientation.** Spin axes and rotation angles follow the IAU WGCCRE models, so day and night sides, Earth's tilt and Saturn's ring angle are correct for the date. The Moon uses a low-precision lunar theory, and the Milky Way sits in its true place on the sky.
+- **Real orientation.** Spin axes and rotation angles follow the IAU WGCCRE models, so day and night sides, Earth's tilt and Saturn's ring angle are correct for the date. The Moon follows Meeus' truncated ELP-2000/82 lunar theory (within a few arcseconds of JPL Horizons), and the Milky Way sits in its true place on the sky.
+- **Eclipses.** The Moon's shadow on Earth (umbra and soft penumbra) and the coppery, Earth-shadowed Moon are computed from true geometry, so they are right in either scale. An eclipse finder (`E`) lists past and upcoming solar and lunar eclipses with their type and time of greatest eclipse, and jumps to any of them.
 - **Two scales.** *Compressed* (the default) keeps every direction exact but square-roots the distances and enlarges the planets so you can see them. *True scale* uses real distances and sizes. Switching animates smoothly between the two.
 - **Time travel.** Play, pause, reverse, speeds from real time up to 1 year per second, a date picker, and a **Now** button.
 - **Explore.** Click any planet or label to fly to it and follow it. The info panel shows live distance from the Sun and from Earth, light time, orbital speed and ecliptic coordinates.
@@ -27,6 +28,7 @@ Built with [Three.js](https://threejs.org) and [Vite](https://vitejs.dev). There
 | `N` | Jump to now |
 | `0`–`9`, `M` | Sun, planets, Pluto, Moon |
 | `S` `O` `L` `B` `P` | Scale, orbits, labels, asteroids, Pluto |
+| `E` | Eclipse finder |
 
 ## Development
 
@@ -81,7 +83,7 @@ The Vite `base` is set to `./`, so the build works under any repository name.
 - Orbital elements: E. M. Standish, JPL Solar System Dynamics — <https://ssd.jpl.nasa.gov/planets/approx_pos.html>
 - Reference ephemerides for tests: NASA JPL Horizons
 - Rotation models: IAU Working Group on Cartographic Coordinates and Rotational Elements (2015)
-- Lunar theory after P. Schlyter / J. Meeus
+- Lunar theory, lunar phases and eclipses: J. Meeus, *Astronomical Algorithms* (2nd ed.), chapters 47, 49 and 54
 - Galilean moons: J. Meeus, *Astronomical Algorithms* ch. 44 (after Lieske's E5). Other major moons: JPL Planetary Satellite Mean Elements (<https://ssd.jpl.nasa.gov/sats/elem/>), refined against Horizons by `scripts/fit-satellites.mjs`; parent-relative errors are ≤ 0.33° for every moon over 1950–2050 (Galileans ≈ 0.01° median)
 - Simplex noise: Ian McEwan, Stefan Gustavson (Ashima Arts), MIT License
 - Coastlines: [Natural Earth](https://www.naturalearthdata.com) 1:50m land (public domain), via the `world-atlas` package

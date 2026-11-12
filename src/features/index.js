@@ -20,8 +20,10 @@
 
 import stars from './stars.js';
 import moons from './moons.js';
+import eclipses from './eclipses.js';
 
 export const features = [
   stars,
   moons,
+  eclipses,
 ];
