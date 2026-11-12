@@ -25,6 +25,7 @@ import imagery from './imagery.js';
 import lensFlare from './lensFlare.js';
 import smallBodies from './smallBodies.js';
 import spacecraft from './spacecraft.js';
+import events from './events.js';
 
 export const features = [
   stars,
@@ -34,4 +35,5 @@ export const features = [
   lensFlare,
   smallBodies,
   spacecraft,
+  events,
 ];
