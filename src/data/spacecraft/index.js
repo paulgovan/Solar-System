@@ -25,31 +25,31 @@ export const SPACECRAFT = [
   {
     id: 'voyager1', ...common('voyager1'), name: 'Voyager 1', color: '#7fe8c8',
     launched: '5 Sep 1977', massKg: 722, lastContact: null,
-    flybys: 'Jupiter (Mar 1979), Saturn and Titan (Nov 1980)',
+    flybys: 'Jupiter, Saturn',
     description: 'The most distant human-made object. After Jupiter and Saturn it took the “Pale Blue Dot” portrait of Earth in 1990 and crossed the heliopause into interstellar space in August 2012.',
   },
   {
     id: 'voyager2', ...common('voyager2'), name: 'Voyager 2', color: '#80c8f0',
     launched: '20 Aug 1977', massKg: 722, lastContact: null,
-    flybys: 'Jupiter (Jul 1979), Saturn (Aug 1981), Uranus (Jan 1986), Neptune (Aug 1989)',
+    flybys: 'Jupiter, Saturn, Uranus, Neptune',
     description: 'The only spacecraft to have visited Uranus and Neptune, completing the Grand Tour of all four giant planets. It entered interstellar space in November 2018.',
   },
   {
     id: 'pioneer10', ...common('pioneer10'), name: 'Pioneer 10', color: '#f2c879',
     launched: '3 Mar 1972', massKg: 258, lastContact: 'Jan 2003',
-    flybys: 'Jupiter (Dec 1973)',
+    flybys: 'Jupiter',
     description: 'The first spacecraft to cross the asteroid belt and to fly past Jupiter. It carries the Pioneer plaque. Its last signal arrived in January 2003; the position since then is a JPL prediction.',
   },
   {
     id: 'pioneer11', ...common('pioneer11'), name: 'Pioneer 11', color: '#f0a07c',
     launched: '6 Apr 1973', massKg: 259, lastContact: 'Sep 1995',
-    flybys: 'Jupiter (Dec 1974), Saturn (Sep 1979)',
+    flybys: 'Jupiter, Saturn',
     description: 'Used Jupiter’s gravity to swing across the solar system and became the first spacecraft to fly past Saturn, scouting the route for the Voyagers. Contact was lost in September 1995.',
   },
   {
     id: 'newhorizons', ...common('newhorizons'), name: 'New Horizons', color: '#c6a2f5',
     launched: '19 Jan 2006', massKg: 478, lastContact: null,
-    flybys: 'Jupiter (Feb 2007), Pluto (Jul 2015), Arrokoth (Jan 2019)',
+    flybys: 'Jupiter, Pluto, Arrokoth',
     description: 'The fastest spacecraft ever launched from Earth. It made the first flyby of Pluto and Charon on 14 July 2015 and of the Kuiper Belt object Arrokoth on New Year’s Day 2019.',
   },
 ];

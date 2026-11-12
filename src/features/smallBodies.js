@@ -135,14 +135,26 @@ registerBodies(SMALL_BODIES);
 const fmtYear = (jd) => jdToDate(jd).getUTCFullYear();
 const fmtDate = (jd) => jdToDate(jd).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 
-/** Perihelion passages around jd (TDB) from the nearest osculating elements. */
+/** Perihelion time nearest `guess` (TDB), refined with the elements nearest to it. */
+function perihelionNear(series, guess) {
+  let tp = guess;
+  for (let i = 0; i < 4; i++) {
+    const el = nearestElements(series, tp);
+    const M = el.M0 + el.n * (tp - el.epoch);
+    const dM = Math.atan2(Math.sin(M), Math.cos(M)); // −π…π from perihelion
+    tp -= dM / el.n;
+  }
+  return tp;
+}
+
+/** Last and next perihelion passages around jd (TDB). */
 export function perihelia(series, jd) {
   const el = nearestElements(series, jd);
   const period = (2 * Math.PI) / el.n;
   const M = el.M0 + el.n * (jd - el.epoch);
   const since = ((M % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) / el.n;
-  const last = jd - since;
-  return { last, next: last + period };
+  const last = perihelionNear(series, jd - since);
+  return { last, next: perihelionNear(series, last + period) };
 }
 
 export default {
@@ -154,6 +166,18 @@ export default {
     this.comet = createComet();
     app.scene.add(this.comet.group);
     this.halley = halley;
+
+    // Fly to a comet from the side, far enough back to frame its tail
+    app.on('select', (id) => {
+      if (id !== 'halley' || !halley.group.visible) return;
+      const len = this.comet.sceneLength(halley.au, app.blend ?? 1);
+      if (len <= halley.radius * 10) return;
+      app.rig.flyTo(halley, { distance: len * 1.5 });
+      const toSun = halley.position.clone().negate().normalize();
+      const up = new app.THREE.Vector3(0, 1, 0);
+      const side = new app.THREE.Vector3().crossVectors(toSun, up).normalize();
+      app.rig.flight.endDir.copy(side).addScaledVector(up, 0.35).addScaledVector(toSun, 0.3).normalize();
+    });
 
     registerInfoRows((body) => {
       if (body.data.orbit?.kind !== 'elements') return [];

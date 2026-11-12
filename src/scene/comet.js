@@ -85,7 +85,7 @@ function ribbon(material) {
 }
 
 /**
- * @returns {{ group: THREE.Group, update(au, velocity, blend, camera, headPos, radius): void }}
+ * @returns {{ group: THREE.Group, update(au, velocity, blend, camera, headPos, radius): void, sceneLength(au, blend): number }}
  *   au: heliocentric position (AU), velocity: AU/day, headPos: scene position of the nucleus.
  */
 export function createComet() {
@@ -153,5 +153,14 @@ export function createComet() {
     coma.material.opacity = 0.35 + 0.65 * act;
   }
 
-  return { group, update };
+  /** Scene length of the ion tail for a nucleus at `head` (AU); 0 when inactive. */
+  function sceneLength(head, blend) {
+    const r = Math.hypot(head.x, head.y, head.z);
+    if (!r || cometActivity(r) <= 0) return 0;
+    const L = tailLengths(r).ion / r;
+    au.x = head.x * (1 + L); au.y = head.y * (1 + L); au.z = head.z * (1 + L);
+    return mapPosition(head, tangent, blend).distanceTo(mapPosition(au, side, blend));
+  }
+
+  return { group, update, sceneLength };
 }

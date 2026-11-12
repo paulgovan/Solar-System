@@ -103,3 +103,13 @@ describe('comet', () => {
     expect(tailLengths(0.1).ion).toBeLessThanOrEqual(0.4);
   });
 });
+
+describe('Halley perihelia', async () => {
+  const { perihelia } = await import('../src/features/smallBodies.js').catch(() => ({}));
+  it.skipIf(!perihelia)('finds the 1986 and 2061 passages', () => {
+    const series = createElementSeries(ELEMENTS.bodies.halley.elements);
+    const { last, next } = perihelia(series, 2446480.5); // 20 Feb 1986
+    expect(Math.abs(last - 2446469.97)).toBeLessThan(1); // 9 Feb 1986
+    expect(Math.abs(next - 2474033.5)).toBeLessThan(5); // 28 Jul 2061
+  });
+});

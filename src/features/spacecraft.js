@@ -8,8 +8,8 @@
 // Flybys: in compressed scale the planets are drawn hundreds of times larger than life,
 // so a heliocentric mapping would put a spacecraft inside Jupiter during its flyby.
 // Near a planet the craft is instead placed with the satellite mapping that moons use
-// (src/scale.js mapSatelliteOffset), relative to the planet the app draws, fading back
-// to the heliocentric mapping farther out. The trail uses the same mapping, so it bends
+// (src/scale.js mapSatelliteOffset), relative to the planet the app draws, merging into
+// the heliocentric mapping farther out. The trail uses the same mapping, so it bends
 // around the planet with the marker.
 
 import * as THREE from 'three';
@@ -22,7 +22,7 @@ import {
 } from '../ephemeris/spacecraft.js';
 import { registerToggle, state, select } from '../state.js';
 import { registerInfoRows, fmtNum } from '../ui/infoPanel.js';
-import { mapPosition, mapRadius, mapSatelliteOffset } from '../scale.js';
+import { mapPosition, mapRadius } from '../scale.js';
 import { BODY_MAP } from '../bodies.js';
 import { SPACECRAFT } from '../data/spacecraft/index.js';
 
@@ -112,22 +112,35 @@ const smooth = (a, b, x) => {
 const tmpA = new THREE.Vector3();
 const tmpB = new THREE.Vector3();
 
+const SAT_KNEE = 2.6, SAT_P = 0.25; // as src/scale.js mapSatelliteOffset (moons)
+const SAT_CAP = 30; // planet radii: beyond the large moons the satellite distance stops growing
+const relPoint = { x: 0, y: 0, z: 0 };
+
 /**
  * Scene position for a spacecraft at heliocentric `au` that is `rel` (AU) from planet
- * `planetId` whose scene position is `planetScene`, with encounter fade `weight`.
+ * `planetId` (heliocentric `planetAU`, scene position `planetScene`), with encounter
+ * fade `weight`. The scene distance from the planet is the larger of
+ *   - the heliocentric mapping of the true point, and
+ *   - the satellite mapping moons use (in compressed planet radii), capped at 30 radii,
+ * so the craft passes outside the enlarged planet and between its moons in the right
+ * order, and the distance never shrinks while the craft recedes (no loops in the trail).
  */
 function encounterScene(au, rel, weight, planetId, planetAU, planetScene, blend, out) {
   mapPosition(au, out, blend);
   if (!rel || weight <= 0) return out;
-  const R = BODY_MAP[planetId].radiusKm;
-  // How far out the satellite mapping is needed: where the heliocentric mapping would
-  // put the craft a few compressed planet radii away (radial scale = 50/√r per AU).
-  const rp = Math.hypot(planetAU.x, planetAU.y, planetAU.z) || 1;
-  const d2 = (4 * mapRadius(R, 1) * Math.sqrt(rp)) / 50;
-  const w = weight * (1 - smooth(0.3 * d2, d2, Math.hypot(rel.x, rel.y, rel.z)));
-  if (w <= 0) return out;
-  mapSatelliteOffset(rel, R, tmpA, blend).add(planetScene);
-  return out.lerp(tmpA, w);
+  const Rkm = BODY_MAP[planetId].radiusKm;
+  relPoint.x = planetAU.x + rel.x; relPoint.y = planetAU.y + rel.y; relPoint.z = planetAU.z + rel.z;
+  const H = mapPosition(relPoint, tmpA, blend).sub(planetScene); // heliocentric offset
+  const hLen = H.length();
+  const x = Math.min(SAT_CAP, (Math.hypot(rel.x, rel.y, rel.z) * AU_KM) / Rkm);
+  const sat = mapRadius(Rkm, blend) * (x <= SAT_KNEE ? x : SAT_KNEE * Math.pow(x / SAT_KNEE, SAT_P));
+  const m = Math.max(hLen, sat);
+  // direction: the true one close in, the heliocentric-mapped one once that dominates
+  const s = smooth(0.5, 1, hLen / sat);
+  tmpB.set(rel.x, rel.z, -rel.y).normalize().multiplyScalar(1 - s);
+  if (hLen > 0) tmpB.addScaledVector(H, s / hLen);
+  tmpB.normalize().multiplyScalar(m).add(planetScene);
+  return out.lerp(tmpB, weight);
 }
 
 // ---------------------------------------------------------------------------
@@ -205,14 +218,15 @@ function createTrail(body, traj) {
   line.name = `${body.id}-trail`;
   let lastBlend = null;
   const v = new THREE.Vector3();
+  const planetScene = new THREE.Vector3();
   line.userData.update = (blend) => {
     if (blend === lastBlend) return;
     lastBlend = blend;
     const arr = geo.attributes.position.array;
     for (let i = 0; i < n; i++) {
       const p = pts[i];
-      if (p.planet) mapPosition(p.planetAU, tmpB, blend);
-      encounterScene(p.au, p.rel, p.weight, p.planet, p.planetAU, tmpB, blend, v);
+      if (p.planet) mapPosition(p.planetAU, planetScene, blend);
+      encounterScene(p.au, p.rel, p.weight, p.planet, p.planetAU, planetScene, blend, v);
       arr[i * 3] = v.x; arr[i * 3 + 1] = v.y; arr[i * 3 + 2] = v.z;
     }
     geo.attributes.position.needsUpdate = true;
@@ -258,10 +272,11 @@ export default {
         const r = Math.hypot(st.rel.x, st.rel.y, st.rel.z) * AU_KM;
         const rv = encounterVelocity(st.enc, day);
         const pname = BODY_MAP[st.enc.body].name;
-        rows.push([`Distance from ${pname}`, `${fmtNum(r)} km (${fmtNum(r / BODY_MAP[st.enc.body].radiusKm, 1)} radii)`]);
+        rows.push([`Distance from ${pname}`, `${fmtNum(r)} km`]);
+        rows.push(['', `${fmtNum(r / BODY_MAP[st.enc.body].radiusKm, 1)} ${pname} radii`]);
         rows.push([`Speed vs ${pname}`, `${fmtNum((Math.hypot(rv.x, rv.y, rv.z) * AU_KM) / 86400, 1)} km/s`]);
       }
-      rows.push(['Launched', d.launched], ['Flybys', d.flybys], ['Mass at launch', `${fmtNum(d.massKg)} kg`]);
+      rows.push(['Launched', d.launched], ['Flybys', d.flybys], ['Mass', `${fmtNum(d.massKg)} kg`]);
       if (d.lastContact) rows.push(['Last contact', d.lastContact]);
       rows.push(['Trajectory', `JPL Horizons, ${fmtYear(traj.t0)}–${fmtYear(traj.t0 + traj.end)}`]);
       return rows;
