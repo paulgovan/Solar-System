@@ -19,7 +19,7 @@ async function waitForFullyLoaded(page) {
 }
 
 test('eclipse panel lists eclipses and jumps to one', async ({ page }) => {
-  await page.goto('./#t=2026-01-01T00:00Z&paused=1');
+  await page.goto('./?quality=low#t=2026-01-01T00:00Z&paused=1');
   await waitForFullyLoaded(page);
 
   await page.locator('#eclipses-btn').click();
@@ -40,7 +40,7 @@ test('eclipse panel lists eclipses and jumps to one', async ({ page }) => {
 });
 
 test('a totally eclipsed Moon reports no direct sunlight', async ({ page }) => {
-  await page.goto('./#t=2025-03-14T06:59Z&body=moon&paused=1');
+  await page.goto('./?quality=low#t=2025-03-14T06:59Z&body=moon&paused=1');
   await waitForFullyLoaded(page);
   await expect(page.locator('#info-live')).toContainText('Centre in Earth’s umbra');
   await expect(page.locator('#info-live')).toContainText(/Sun visible from Moon\s*0%/);

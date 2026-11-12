@@ -16,7 +16,7 @@ async function waitForApp(page) {
 }
 
 test('renders the scene with planets and labels', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?quality=low');
   await waitForApp(page);
   await expect(page.locator('.label', { hasText: 'Jupiter' })).toBeVisible();
   expect(await page.locator('#body-list button').count()).toBeGreaterThanOrEqual(11);
@@ -40,7 +40,7 @@ test('renders the scene with planets and labels', async ({ page }) => {
 });
 
 test('selecting a body opens the info panel and updates the URL', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?quality=low');
   await waitForApp(page);
   await page.locator('#body-list button', { hasText: 'Saturn' }).click();
   await expect(page.locator('#info')).toHaveClass(/open/);
@@ -52,7 +52,7 @@ test('selecting a body opens the info panel and updates the URL', async ({ page 
 });
 
 test('URL hash restores date, body, scale and pause state', async ({ page }) => {
-  await page.goto('./#t=1969-07-20T20:17Z&body=moon&scale=true&paused=1');
+  await page.goto('./?quality=low#t=1969-07-20T20:17Z&body=moon&scale=true&paused=1');
   await waitForApp(page);
   await expect(page.locator('#date-main')).toHaveText('Jul 20, 1969');
   await expect(page.locator('#info-name')).toHaveText('Moon');
@@ -61,7 +61,7 @@ test('URL hash restores date, body, scale and pause state', async ({ page }) => 
 });
 
 test('toggles hide and show bodies', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?quality=low');
   await waitForApp(page);
   const pluto = page.locator('[data-toggle="pluto"]');
   await expect(pluto).toHaveClass(/active/);
@@ -74,7 +74,7 @@ test('reduced motion: time starts paused and the camera moves instantly', async 
   const ctx = await browser.newContext({ reducedMotion: 'reduce' });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('./');
+  await page.goto('./?quality=low');
   await waitForApp(page);
   await expect(page.locator('.timebar')).toHaveClass(/paused/);
   await page.locator('#body-list button', { hasText: 'Jupiter' }).click();
@@ -83,7 +83,7 @@ test('reduced motion: time starts paused and the camera moves instantly', async 
 });
 
 test('body list is keyboard accessible with labels and pressed state', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?quality=low');
   await waitForApp(page);
   const saturn = page.locator('#body-list button', { hasText: 'Saturn' });
   await expect(saturn).toHaveAttribute('aria-label', /Saturn/);
@@ -94,7 +94,7 @@ test('body list is keyboard accessible with labels and pressed state', async ({ 
 });
 
 test('has a web manifest and link-preview meta tags', async ({ page, request }) => {
-  await page.goto('./');
+  await page.goto('./?quality=low');
   const href = await page.locator('link[rel="manifest"]').getAttribute('href');
   const manifest = await (await request.get(new URL(href, page.url()).href)).json();
   expect(manifest.start_url).toBe('./');

@@ -7,7 +7,7 @@ const PORT = Number(process.env.E2E_PORT || 4173); // set E2E_PORT to avoid clas
 
 export default defineConfig({
   testDir: 'tests/e2e',
-  timeout: 60_000,
+  timeout: CI ? 120_000 : 60_000, // GPU-less CI runners render with software GL
   retries: CI ? 1 : 0,
   use: {
     baseURL: `http://localhost:${PORT}/`,

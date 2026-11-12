@@ -44,9 +44,12 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (reduceMotion) state.playing = false;
 const canvas = document.getElementById('scene');
 const isMobile = matchMedia('(max-width: 820px)').matches || /Mobi|Android/i.test(navigator.userAgent);
+// `?quality=low` renders with small textures and fewer asteroids: for slow devices, and
+// for the e2e tests, which run on GPU-less CI runners where software GL is very slow.
+const lowQuality = new URLSearchParams(location.search).get('quality') === 'low';
 // Coastlines are rasterized in a worker while the scene is set up; Earth's full-resolution
 // bake waits for them (see src/textures/bakeQueue.js).
-const earthMask = loadEarthMask(isMobile ? 2048 : 4096);
+const earthMask = loadEarthMask(lowQuality ? 1024 : isMobile ? 2048 : 4096);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.75 : 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -71,7 +74,7 @@ composer.addPass(new OutputPass());
 
 const sky = createSky();
 scene.add(sky.group);
-const belt = createAsteroidBelt(isMobile ? 5000 : 9000);
+const belt = createAsteroidBelt(lowQuality ? 2000 : isMobile ? 5000 : 9000);
 scene.add(belt.object);
 
 // Compile the bake shaders in parallel (KHR_parallel_shader_compile) before the preview
@@ -80,7 +83,7 @@ await Promise.all([
   precompileBakes(renderer),
   precompileBakes(renderer, ['earth', 'earthLights'], { landMask: true }),
 ]);
-const system = createSolarSystem(renderer, scene, { onSelect: (id) => select(id), quality: isMobile ? 0.5 : 1, earthMask });
+const system = createSolarSystem(renderer, scene, { onSelect: (id) => select(id), quality: lowQuality ? 0.25 : isMobile ? 0.5 : 1, earthMask });
 const { bodies } = system;
 const rig = createCameraRig(camera, canvas);
 
