@@ -14,13 +14,15 @@
 //    and annual aberration, precession and nutation (true equator and equinox of date), then
 //    topocentric parallax — what JPL Horizons calls "apparent, airless" RA/Dec and Az/El.
 //
-// Accuracy (see tests/topocentric.test.js, tests/horizons-sky.test.js): sidereal time and
-// horizontal coordinates reproduce Meeus' worked examples to the digits printed; against JPL
-// Horizons the Sun, Moon, Mars and Jupiter agree to about 0.01–0.02° in altitude/azimuth
-// (the planets' Keplerian elements, not this module, set that limit) and rise/set times to
-// about a minute. Nutation uses the 21 largest IAU-1980 terms (error < 0.1″). Refraction is
-// for 1010 mbar and 10 °C; it is applied only to displayed (“apparent”) altitudes and in the
-// rise/set threshold, never to the geometric altitude.
+// Accuracy (tests/topocentric.test.js, tests/horizons-sky.test.js): sidereal time, nutation,
+// precession and horizontal coordinates reproduce Meeus' worked examples to the digits printed.
+// Against JPL Horizons observer tables (two cities, two dates, six bodies, airless apparent
+// Az/El): Sun, Moon, Venus and Mars agree within 0.01° in altitude and azimuth, Jupiter within
+// 0.03° and Saturn within 0.08° (their limit is the Keplerian elements, not this module); rise,
+// transit and set agree within one minute (Horizons rounds to the minute); magnitudes within
+// 0.11 (Moon) and 0.08 (Mars), better than 0.04 for the others. Nutation uses the 21 largest
+// IAU-1980 terms (error < 0.1″). Refraction is for 1010 mbar and 10 °C; it is applied only to
+// displayed (“apparent”) altitudes and in the rise/set threshold, never to the geometric altitude.
 
 import { DEG, AU_KM, J2000, OBLIQUITY_J2000 } from './constants.js';
 import { centuriesTT } from './time.js';

@@ -49,8 +49,9 @@ test('choosing a city fills the Tonight table, and the choice persists', async (
   await expect(page.locator('#info-name')).toHaveText('Jupiter');
 
   // the observer persists across reloads
+  expect(await page.evaluate(() => localStorage.getItem('solar-system.observer.v1'))).toContain('Tokyo');
   await page.reload();
-  await waitForFullyLoaded(page);
+  await expect(page.locator('#observer-btn')).toBeVisible({ timeout: 30_000 }); // no need to wait for the texture bakes
   await page.locator('#observer-btn').click();
   await expect(page.locator('#ob-city option:checked')).toHaveText('Tokyo, Japan');
 });
