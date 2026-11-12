@@ -26,7 +26,7 @@ export const IMAGERY = {
     nightMap: { file: ['earth_night.webp', 'earth_night_2k.webp'], mode: 'night' },
     clouds: { file: 'earth_clouds.webp', mode: 'clouds' },
   },
-  moon: { map: { file: 'moon.webp', mode: 'height' } },
+  moon: { map: { file: ['moon.webp', 'moon_2k.webp'], mode: 'height' } },
   mars: { map: { file: 'mars.webp', mode: 'flat' } },
   jupiter: { map: { file: 'jupiter.webp', mode: 'flat' } },
   pluto: { map: { file: 'pluto.webp', mode: 'mask' } },

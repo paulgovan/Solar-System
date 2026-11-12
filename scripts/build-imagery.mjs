@@ -98,7 +98,7 @@ const JOBS = {
   },
   // LRO WAC colour (CGI Moon Kit) with LOLA elevation in alpha for the bump shading.
   async moon() {
-    for (const [name, w] of [['moon', 4096]]) {
+    for (const [name, w] of [['moon', 4096], ['moon_2k', 2048]]) {
       const rgb = await raw(resize('lroc_color_poles_4k.tif', w).removeAlpha());
       const h = await raw(sharp(src('ldem_3_8bit.jpg')).greyscale().resize(w, w / 2, { fit: 'fill', kernel: sharp.kernel.cubic }));
       await write(name, fromRaw(addAlpha(rgb, h)), 82, { alphaQuality: 70 });
