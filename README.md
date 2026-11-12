@@ -36,7 +36,7 @@ Requires Node.js 20.19+.
 npm install
 npm run dev        # http://localhost:5173
 npm test           # unit tests, incl. ephemeris accuracy vs JPL Horizons
-npm run test:e2e   # Playwright smoke tests on the production build (uses local Chrome)
+npm run test:e2e   # Playwright smoke tests on the production build (uses local Chrome; E2E_PORT=… to change port)
 npm run build      # production build in dist/
 ```
 
@@ -51,6 +51,8 @@ src/scale.js            true ↔ compressed mapping (heliocentric and satellite 
 src/scene/              solar system bodies, sky / Milky Way, asteroid belt
 src/shaders/            noise + custom materials (planets, rings, atmosphere, Sun, orbits)
 src/textures.js         GPU-baked procedural maps, ring profile, bake-function registry
+src/textures/bakeQueue.js  progressive baking: 256 px previews first, full resolution in idle time
+scripts/                measure-load.mjs (load timing), make-assets.mjs (icons, og.png)
 src/earthMask.js        Natural Earth coastlines rasterized into Earth's land mask
 src/ui/                 toolbar, time bar, body list, info panel, labels, picking, keyboard
 src/features/           optional feature modules (see below)
@@ -74,7 +76,7 @@ The workflow in `.github/workflows/deploy.yml` tests, builds and publishes the s
 3. On GitHub, open **Settings → Pages** and set **Source** to **GitHub Actions**.
 4. The site will be live at `https://<you>.github.io/solar-system/` once the workflow finishes.
 
-The Vite `base` is set to `./`, so the build works under any repository name.
+The Vite `base` is set to `./`, so the build works under any repository name. The site is an installable, offline-capable PWA (`vite-plugin-pwa`); Open Graph image links use `SITE_URL`, or the Pages URL derived from `GITHUB_REPOSITORY` in CI.
 
 ## Credits
 

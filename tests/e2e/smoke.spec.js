@@ -92,3 +92,13 @@ test('body list is keyboard accessible with labels and pressed state', async ({ 
   await expect(saturn).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#info')).toHaveAttribute('aria-live', 'polite');
 });
+
+test('has a web manifest and link-preview meta tags', async ({ page, request }) => {
+  await page.goto('./');
+  const href = await page.locator('link[rel="manifest"]').getAttribute('href');
+  const manifest = await (await request.get(new URL(href, page.url()).href)).json();
+  expect(manifest.start_url).toBe('./');
+  expect(manifest.icons.length).toBeGreaterThanOrEqual(3);
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /og\.png$/);
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+});
