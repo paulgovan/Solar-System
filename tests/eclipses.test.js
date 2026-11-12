@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { lunarPhaseJDE, eclipseAt, findEclipses, eclipsesAround, dateToJD } from '../src/ephemeris/index.js';
+import {
+  lunarPhaseJDE, eclipseAt, findEclipses, eclipsesAround, dateToJD, computePositions, eclipseCircumstances, discCover,
+  geographic,
+} from '../src/ephemeris/index.js';
 
 const jdUT = (iso) => dateToJD(new Date(iso));
 const MIN = 1 / 1440;
@@ -65,5 +68,62 @@ describe('eclipse conditions (Meeus 54)', () => {
     expect(previous.every((e) => e.jd < jdUT('2026-01-01T00:00Z'))).toBe(true);
     expect(next[0].type).toBe('annular'); // 2026 Feb 17
     expect(next[1].type).toBe('total'); // 2026 Mar 3 lunar
+  });
+});
+
+describe('shadow geometry from the ephemeris', () => {
+  const at = (iso) => {
+    const p = computePositions(jdUT(iso));
+    return eclipseCircumstances(p.earth, p.moon);
+  };
+
+  it('disc overlap is 0 apart, 1 when covered, and the lens area in between', () => {
+    expect(discCover(1, 1, 2.5)).toBe(0);
+    expect(discCover(1, 1.2, 0.1)).toBe(1);
+    expect(discCover(1, 0.5, 0)).toBeCloseTo(0.25, 12);
+    expect(discCover(1, 1, 0)).toBe(1);
+    expect(discCover(1, 1, 1)).toBeCloseTo(0.391, 3); // two unit circles one radius apart
+  });
+
+  it('puts the Moon\'s umbra on Earth at the 2024 and 2026 total solar eclipses', () => {
+    for (const iso of ['2024-04-08T18:17Z', '2026-08-12T17:46Z']) {
+      const c = at(iso);
+      expect(c.solar.kind).toBe('total');
+      expect(c.solar.cover).toBe(1);
+      expect(c.lunar.cover).toBe(0);
+    }
+  });
+
+  it('shows an annular eclipse as a ring and a partial one as partial', () => {
+    expect(at('2024-10-02T18:45Z').solar.kind).toBe('annular');
+    const p = at('2025-03-29T10:47Z').solar;
+    expect(p.kind).toBe('partial');
+    expect(p.cover).toBeGreaterThan(0.8);
+  });
+
+  it('hides the Sun completely from the Moon at the 2025 and 2026 total lunar eclipses', () => {
+    for (const iso of ['2025-03-14T06:59Z', '2026-03-03T11:34Z']) {
+      const c = at(iso);
+      expect(c.lunar.kind).toBe('total');
+      expect(c.lunar.cover).toBe(1);
+      expect(c.solar.cover).toBe(0);
+    }
+  });
+
+  it('puts the shadow centre at the published point of greatest eclipse', () => {
+    // [UT, latitude, east longitude] from NASA's eclipse catalogue
+    for (const [iso, lat, lon] of [['2024-04-08T18:17:16Z', 25.3, -104.1], ['2026-08-12T17:46:06Z', 65.2, -25.2], ['2017-08-21T18:25:31Z', 37.0, -87.7]]) {
+      const jd = jdUT(iso);
+      const p = computePositions(jd);
+      const { point } = eclipseCircumstances(p.earth, p.moon).solar;
+      const g = geographic({ x: point.x - p.earth.x, y: point.y - p.earth.y, z: point.z - p.earth.z }, jd);
+      expect(Math.abs(g.lat - lat)).toBeLessThan(1);
+      expect(Math.abs(g.lon - lon)).toBeLessThan(1);
+    }
+  });
+
+  it('has no eclipse a week later', () => {
+    const c = at('2026-08-19T17:46Z');
+    expect(c.solar.cover + c.lunar.cover).toBe(0);
   });
 });

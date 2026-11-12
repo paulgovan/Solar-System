@@ -18,4 +18,8 @@
 //   - app.on(event, fn), app.bodies, app.scene, app.camera, app.rig, app.renderer …
 //   - body.shadowCasters.push(id)         to let one body shadow another
 
-export const features = [];
+import eclipses from './eclipses.js';
+
+export const features = [
+  eclipses,
+];

@@ -7,8 +7,9 @@
 //                fundamental plane), type, magnitude and time of maximum eclipse.
 // Times returned as `jdTD` are Terrestrial (Dynamical) Time; `jd` is UTC via ΔT.
 
-import { DEG } from './constants.js';
+import { DEG, AU_KM, OBLIQUITY_J2000 } from './constants.js';
 import { deltaT } from './time.js';
+import { orientation } from './rotation.js';
 
 export const SYNODIC_MONTH = 29.530588861;
 const K_EPOCH = 2451550.09766; // JDE of the mean new Moon with k = 0 (2000 Jan 6)
@@ -172,4 +173,91 @@ export function eclipsesAround(jd, before = 3, after = 5) {
   let next = [];
   for (let w = 1; next.length < after && w < 40; w++) next = findEclipses(jd + 1e-9, jd + w * span);
   return { previous: prev.slice(-before), next: next.slice(0, after) };
+}
+
+// ---------------------------------------------------------------------------
+// Shadow geometry from true positions (heliocentric AU, Sun at the origin).
+// Used to drive the eclipse shader uniforms and the info panel.
+// ---------------------------------------------------------------------------
+export const SUN_RADIUS_KM = 695700;
+export const EARTH_RADIUS_KM = 6371.0;
+export const MOON_RADIUS_KM = 1737.4;
+/** Earth's shadow is ~2% larger than geometry predicts because of its atmosphere. */
+export const SHADOW_ENLARGEMENT = 1.02;
+
+const sub = (a, b) => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
+const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
+const len = (a) => Math.hypot(a.x, a.y, a.z);
+
+/** Fraction of a disk of angular radius a hidden by a disk of angular radius b at separation d (radians). */
+export function discCover(a, b, d) {
+  if (d >= a + b) return 0;
+  if (d <= Math.abs(b - a)) return b >= a ? 1 : (b * b) / (a * a);
+  const a2 = a * a, b2 = b * b, d2 = d * d;
+  const k1 = Math.acos(Math.min(1, Math.max(-1, (d2 + a2 - b2) / (2 * d * a))));
+  const k2 = Math.acos(Math.min(1, Math.max(-1, (d2 + b2 - a2) / (2 * d * b))));
+  const k3 = Math.sqrt(Math.max(0, (a + b - d) * (d + a - b) * (d - a + b) * (d + a + b)));
+  return Math.min(1, Math.max(0, (a2 * k1 + b2 * k2 - 0.5 * k3) / (Math.PI * a2)));
+}
+
+/**
+ * How much of the Sun is hidden, seen from point p, by a sphere of radius occKm at occ.
+ * Positions heliocentric in AU. Returns { cover 0…1, kind: null | 'partial' | 'total' | 'annular' }.
+ */
+export function sunCover(p, occ, occKm) {
+  const toO = sub(occ, p), toS = { x: -p.x, y: -p.y, z: -p.z };
+  const dO = len(toO), dS = len(toS);
+  if (dot(toO, toS) <= 0 || dO >= dS) return { cover: 0, kind: null };
+  const cr = { x: toO.y * toS.z - toO.z * toS.y, y: toO.z * toS.x - toO.x * toS.z, z: toO.x * toS.y - toO.y * toS.x };
+  const d = Math.atan2(len(cr), dot(toO, toS));
+  const a = Math.asin(SUN_RADIUS_KM / (dS * AU_KM));
+  const b = Math.asin(Math.min(1, occKm / (dO * AU_KM)));
+  const cover = discCover(a, b, d);
+  let kind = null;
+  if (cover > 0) kind = d <= b - a ? 'total' : d <= a - b ? 'annular' : 'partial';
+  return { cover, kind };
+}
+
+/**
+ * Current eclipse circumstances from heliocentric Earth and Moon positions (AU).
+ * solar: deepest point of the Moon's shadow on Earth's surface (cover, kind, point);
+ * lunar: Sun as seen from the Moon's centre, hidden by Earth (enlarged by its atmosphere).
+ */
+export function eclipseCircumstances(earth, moon) {
+  const R = EARTH_RADIUS_KM / AU_KM;
+  // Shadow axis: from the Sun (origin) through the Moon. Closest point of the axis to Earth's centre:
+  const u = { x: moon.x / len(moon), y: moon.y / len(moon), z: moon.z / len(moon) };
+  const t = dot(sub(earth, moon), u);
+  const onAxis = { x: moon.x + u.x * t, y: moon.y + u.y * t, z: moon.z + u.z * t };
+  const off = sub(onAxis, earth);
+  const dPerp = len(off);
+  let point;
+  if (t > 0 && dPerp < R) {
+    // the axis pierces Earth: take the entry point facing the Moon
+    const back = Math.sqrt(R * R - dPerp * dPerp);
+    point = { x: onAxis.x - u.x * back, y: onAxis.y - u.y * back, z: onAxis.z - u.z * back };
+  } else {
+    const k = R / (dPerp || 1);
+    point = { x: earth.x + off.x * k, y: earth.y + off.y * k, z: earth.z + off.z * k };
+  }
+  const solar = t > 0 ? { ...sunCover(point, moon, MOON_RADIUS_KM), point } : { cover: 0, kind: null, point };
+  const lunar = sunCover(moon, earth, EARTH_RADIUS_KM * SHADOW_ENLARGEMENT);
+  return { solar, lunar };
+}
+
+/**
+ * Geographic latitude / east longitude (degrees) of a geocentric ecliptic-J2000 vector,
+ * using Earth's IAU orientation for the UTC Julian Date jd. (Spherical Earth.)
+ */
+export function geographic(v, jd) {
+  const { alpha, delta, W } = orientation('earth', jd);
+  const c = Math.cos(OBLIQUITY_J2000), s = Math.sin(OBLIQUITY_J2000);
+  const e = { x: v.x, y: c * v.y - s * v.z, z: s * v.y + c * v.z }; // ecliptic → equatorial
+  const P = { x: Math.cos(delta) * Math.cos(alpha), y: Math.cos(delta) * Math.sin(alpha), z: Math.sin(delta) };
+  const Q = { x: -Math.sin(alpha), y: Math.cos(alpha), z: 0 };
+  const PxQ = { x: P.y * Q.z - P.z * Q.y, y: P.z * Q.x - P.x * Q.z, z: P.x * Q.y - P.y * Q.x };
+  const X = { x: Math.cos(W) * Q.x + Math.sin(W) * PxQ.x, y: Math.cos(W) * Q.y + Math.sin(W) * PxQ.y, z: Math.cos(W) * Q.z + Math.sin(W) * PxQ.z };
+  const Y = { x: P.y * X.z - P.z * X.y, y: P.z * X.x - P.x * X.z, z: P.x * X.y - P.y * X.x };
+  const r = len(e);
+  return { lat: Math.asin(dot(e, P) / r) / DEG, lon: Math.atan2(dot(e, Y), dot(e, X)) / DEG };
 }
