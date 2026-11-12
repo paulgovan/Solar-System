@@ -14,6 +14,8 @@
 //   labelPriority                       0 = always shown … higher values hide first when labels overlap
 //   listed                              false to leave it out of the side list (default true)
 //   key                                 keyboard shortcut that focuses it
+//   createVisual(body, ctx)             build body.mesh yourself instead of a textured sphere
+//   showRadius                          false to hide the Radius row (e.g. spacecraft markers)
 
 export const BODIES = [
   {

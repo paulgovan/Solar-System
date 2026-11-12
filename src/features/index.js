@@ -23,6 +23,8 @@ import moons from './moons.js';
 import eclipses from './eclipses.js';
 import imagery from './imagery.js';
 import lensFlare from './lensFlare.js';
+import smallBodies from './smallBodies.js';
+import spacecraft from './spacecraft.js';
 
 export const features = [
   stars,
@@ -30,4 +32,6 @@ export const features = [
   eclipses,
   imagery,
   lensFlare,
+  smallBodies,
+  spacecraft,
 ];
