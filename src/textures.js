@@ -24,79 +24,158 @@ float spot(float lat, float lon, float lat0, float lon0, float rx, float ry){
 float gauss(float x, float c, float w){ return exp(-pow((x - c) / w, 2.0)); }
 
 // ---------------- Earth ----------------
-struct EarthSample { float land; float elev; vec3 color; float ice; };
+// With LANDMASK, coastlines come from Natural Earth data: R = land, G = coastal
+// shelf (slight blur), B = continental interior (heavy blur). Climate zones are
+// approximated from latitude plus a few hand-placed real deserts, rainforests,
+// mountain ranges and population centres.
+#ifdef LANDMASK
+uniform sampler2D landMask;
+#endif
 
-EarthSample earthSurface(vec3 dir, float lat){
+// lat, lon (deg), lat radius, lon radius (deg)
+float region(float latd, float lond, vec4 r){
+  float dl = mod(lond - r.y + 180.0, 360.0) - 180.0;
+  vec2 d = vec2((latd - r.x) / r.z, dl / r.w);
+  return exp(-dot(d, d));
+}
+
+const vec4 DESERTS[12] = vec4[](
+  vec4(23.0, 10.0, 8.0, 27.0), vec4(22.0, 47.0, 7.0, 10.0), vec4(29.0, 60.0, 5.0, 10.0),
+  vec4(27.0, 71.0, 3.0, 4.0), vec4(41.0, 62.0, 4.0, 9.0), vec4(41.0, 95.0, 5.0, 18.0),
+  vec4(-25.0, 130.0, 8.0, 15.0), vec4(-24.0, 19.0, 5.0, 6.0), vec4(-23.0, -69.5, 7.0, 2.5),
+  vec4(-45.0, -68.0, 6.0, 3.0), vec4(33.0, -113.0, 5.0, 7.0), vec4(38.0, -117.0, 4.0, 4.0));
+const vec4 FORESTS[6] = vec4[](
+  vec4(-4.0, -62.0, 9.0, 14.0), vec4(0.0, 20.0, 6.0, 10.0), vec4(0.0, 110.0, 9.0, 22.0),
+  vec4(12.0, -85.0, 6.0, 6.0), vec4(-18.0, 47.0, 6.0, 3.0), vec4(-12.0, -50.0, 8.0, 10.0));
+const vec4 MOUNTAINS[8] = vec4[](
+  vec4(32.0, 85.0, 5.0, 14.0), vec4(36.0, 72.0, 3.0, 5.0), vec4(-20.0, -68.0, 22.0, 2.5),
+  vec4(45.0, -112.0, 12.0, 5.0), vec4(46.0, 10.0, 1.5, 3.5), vec4(42.0, 44.0, 1.5, 4.0),
+  vec4(-43.0, 171.0, 2.5, 2.0), vec4(62.0, -150.0, 3.0, 8.0));
+// lat, lon, radius (deg), weight
+const vec4 CITIES[34] = vec4[](
+  vec4(40.0, -76.0, 5.0, 1.0), vec4(41.5, -87.0, 4.0, 0.7), vec4(34.0, -84.0, 5.0, 0.6),
+  vec4(31.0, -97.0, 3.5, 0.5), vec4(35.5, -119.0, 3.5, 0.6), vec4(47.0, -122.0, 2.0, 0.4),
+  vec4(19.5, -99.0, 3.0, 0.6), vec4(50.0, 6.0, 6.0, 1.0), vec4(53.0, -2.0, 2.5, 0.8),
+  vec4(43.5, 11.5, 3.5, 0.6), vec4(40.0, -4.0, 3.5, 0.5), vec4(50.0, 24.0, 6.0, 0.5),
+  vec4(55.7, 37.6, 3.0, 0.6), vec4(39.0, 33.0, 4.0, 0.5), vec4(26.0, 50.0, 3.5, 0.5),
+  vec4(28.5, 31.0, 3.5, 0.6), vec4(8.0, 6.0, 3.5, 0.5), vec4(-26.0, 28.0, 2.5, 0.5),
+  vec4(24.0, 79.0, 9.0, 0.9), vec4(23.7, 90.0, 2.5, 0.7), vec4(32.0, 116.0, 8.0, 1.0),
+  vec4(37.0, 127.0, 1.8, 0.7), vec4(35.5, 137.0, 3.0, 0.9), vec4(24.0, 121.0, 1.5, 0.6),
+  vec4(13.0, 102.0, 5.0, 0.4), vec4(-7.0, 110.0, 3.0, 0.7), vec4(14.0, 121.0, 2.5, 0.5),
+  vec4(-22.0, -46.0, 4.5, 0.8), vec4(-34.6, -58.4, 2.5, 0.6), vec4(5.0, -74.0, 3.0, 0.4),
+  vec4(-12.0, -77.0, 2.0, 0.4), vec4(-33.5, -70.6, 2.0, 0.4), vec4(-34.5, 149.0, 3.0, 0.6),
+  vec4(-37.8, 145.0, 2.0, 0.5));
+
+struct EarthSample { float land; float shelf; float interior; float elev; float dry; vec3 color; float ice; };
+
+EarthSample earthSurface(vec3 dir, float lat, float lon){
   EarthSample s;
-  vec3 q = dir * 1.25 + vec3(seed);
-  vec3 w = vec3(fbm(q * 1.1, 4), fbm(q * 1.1 + 5.2, 4), fbm(q * 1.1 + 9.7, 4));
-  float h = fbm(q + w * 0.55, 8);
-  float mountains = ridged(dir * 5.0 + w, 5);
+  float latd = degrees(lat), lond = degrees(lon);
   float lat01 = abs(lat) / (PI * 0.5);
-  float iceEdge = 0.83 + 0.05 * fbm(dir * 6.0, 3);
-  s.ice = smoothstep(iceEdge, iceEdge + 0.03, lat01);
-  s.land = h - 0.045;
-  if (s.land < 0.0) {
-    float depth = clamp(-s.land * 5.0, 0.0, 1.0);
-    s.color = mix(vec3(0.07, 0.30, 0.42), vec3(0.015, 0.07, 0.19), sqrt(depth));
-    s.elev = 0.0;
-  } else {
-    s.elev = clamp(s.land * 1.5 + mountains * 0.3 * smoothstep(0.0, 0.15, s.land), 0.0, 1.0);
-    float moist = fbm(dir * 2.6 + 17.0, 5) * 0.5 + 0.5;
-    float dryBelt = gauss(lat01, 0.28, 0.1);
-    moist = clamp(moist - dryBelt * 0.45 + gauss(lat01, 0.0, 0.12) * 0.25 - s.land * 0.3, 0.0, 1.0);
-    vec3 tropical = vec3(0.06, 0.19, 0.05);
-    vec3 temperate = vec3(0.17, 0.25, 0.09);
-    vec3 grass = vec3(0.36, 0.37, 0.18);
-    vec3 desert = vec3(0.76, 0.6, 0.4);
-    vec3 tundra = vec3(0.40, 0.38, 0.32);
-    vec3 rock = vec3(0.36, 0.31, 0.26);
-    vec3 green = mix(temperate, tropical, 1.0 - smoothstep(0.1, 0.4, lat01));
-    green = mix(green, tundra, smoothstep(0.55, 0.75, lat01));
-    vec3 col = mix(desert, grass, smoothstep(0.25, 0.45, moist));
-    col = mix(col, green, smoothstep(0.45, 0.65, moist));
-    col = mix(col, rock, smoothstep(0.45, 0.75, s.elev));
-    col = mix(col, vec3(0.92), smoothstep(0.88, 0.98, s.elev + lat01 * 0.2));
-    col *= 0.9 + 0.2 * fbm(dir * 30.0, 3);
-    // beach / shallow coastal tint
-    col = mix(vec3(0.6, 0.55, 0.42), col, smoothstep(0.0, 0.012, s.land));
-    s.color = col;
-  }
-  s.color = mix(s.color, vec3(0.93, 0.96, 0.99), s.ice);
+  vec3 w = vec3(fbm(dir * 3.0, 3), fbm(dir * 3.0 + 5.2, 3), fbm(dir * 3.0 + 9.7, 3));
+  float detail = fbm(dir * 60.0 + w, 4);
+#ifdef LANDMASK
+  vec3 m = texture2D(landMask, vUv).rgb;
+  float landF = m.r + detail * 0.18;
+  s.land = smoothstep(0.42, 0.58, landF);
+  s.shelf = m.g;
+  s.interior = m.b;
+#else
+  float h = fbm(dir * 1.25 + w * 0.55 + vec3(seed), 8) - 0.045;
+  s.land = step(0.0, h);
+  s.shelf = smoothstep(-0.12, 0.05, h);
+  s.interior = smoothstep(0.0, 0.3, h);
+#endif
+
+  float mtnRegion = 0.0;
+  for (int i = 0; i < 8; i++) mtnRegion = max(mtnRegion, region(latd, lond, MOUNTAINS[i]));
+  float ridges = ridged(dir * 9.0 + w, 5);
+  s.elev = clamp(0.12 + s.interior * 0.25 + ridges * (0.15 + 0.7 * mtnRegion) * s.land, 0.0, 1.0);
+
+  float dry = 0.0;
+  for (int i = 0; i < 12; i++) dry = max(dry, region(latd, lond, DESERTS[i]));
+  float wet = 0.0;
+  for (int i = 0; i < 6; i++) wet = max(wet, region(latd, lond, FORESTS[i]));
+  float noiseM = fbm(dir * 6.0 + w * 1.5 + 17.0, 6);
+  dry = clamp(dry * (1.0 + 0.6 * noiseM) + noiseM * 0.3 + s.interior * 0.15 * gauss(lat01, 0.45, 0.2) - wet, 0.0, 1.0);
+  s.dry = dry;
+
+  // Ocean
+  vec3 deep = vec3(0.012, 0.055, 0.16);
+  vec3 shallow = vec3(0.04, 0.22, 0.34);
+  vec3 ocean = mix(deep, shallow, smoothstep(0.05, 0.5, s.shelf));
+  ocean *= 0.92 + 0.12 * fbm(dir * 8.0, 3);
+
+  // Land biomes
+  vec3 rainforest = vec3(0.10, 0.22, 0.07);
+  vec3 forest = vec3(0.17, 0.26, 0.11);
+  vec3 boreal = vec3(0.13, 0.19, 0.12);
+  vec3 grass = vec3(0.38, 0.38, 0.20);
+  vec3 steppe = vec3(0.55, 0.50, 0.34);
+  vec3 desert = vec3(0.78, 0.66, 0.48);
+  vec3 redDesert = vec3(0.70, 0.45, 0.28);
+  vec3 tundra = vec3(0.38, 0.36, 0.30);
+  vec3 rock = vec3(0.33, 0.29, 0.25);
+
+  vec3 green = mix(rainforest, forest, smoothstep(0.12, 0.3, lat01));
+  green = mix(green, boreal, smoothstep(0.5, 0.62, lat01));
+  green = mix(green, tundra, smoothstep(0.7, 0.8, lat01));
+  vec3 arid = mix(desert, redDesert, region(latd, lond, vec4(-25.0, 130.0, 9.0, 16.0)) * 0.8 + smoothstep(0.3, 0.6, noiseM) * 0.25);
+  vec3 col = mix(green, grass, smoothstep(0.25, 0.5, dry));
+  col = mix(col, steppe, smoothstep(0.45, 0.65, dry));
+  col = mix(col, arid, smoothstep(0.62, 0.82, dry));
+  col = mix(col, rock, smoothstep(0.35, 0.75, ridges * mtnRegion));
+  col = mix(col, vec3(0.9), smoothstep(0.55, 0.8, ridges * mtnRegion + lat01 * 0.25) * mtnRegion);
+  col *= 0.88 + 0.24 * (fbm(dir * 25.0, 4) * 0.5 + 0.5);
+
+  s.color = mix(ocean, col, s.land);
+
+  // Ice: Antarctica, Greenland, Arctic sea ice
+  float ice = 0.0;
+  ice = max(ice, smoothstep(-62.0, -66.0, latd) * s.land);
+  ice = max(ice, smoothstep(-74.0, -77.0, latd + detail * 3.0));
+  ice = max(ice, smoothstep(0.35, 0.6, region(latd, lond, vec4(73.0, -41.0, 11.0, 24.0))) * s.land);
+  ice = max(ice, smoothstep(80.0, 84.0, latd + detail * 4.0));
+  ice = max(ice, smoothstep(74.0, 80.0, latd + detail * 5.0) * s.land);
+  s.ice = ice;
+  s.color = mix(s.color, vec3(0.92, 0.95, 0.98), ice);
   return s;
 }
 
 vec4 earth(vec3 dir, float lat, float lon){
-  EarthSample s = earthSurface(dir, lat);
-  float a = s.land < 0.0 ? 0.0 : 0.08 + 0.92 * s.elev;
-  if (s.ice > 0.5) a = max(a, 0.1);
+  EarthSample s = earthSurface(dir, lat, lon);
+  float a = mix(0.0, 0.08 + 0.92 * s.elev, s.land);
+  a = max(a, s.ice * 0.1);
   return vec4(s.color, a);
 }
 
 vec4 earthClouds(vec3 dir, float lat, float lon){
   float lat01 = abs(lat) / (PI * 0.5);
-  vec3 q = dir * vec3(2.2, 3.2, 2.2) + seed * 3.0;
+  vec3 q = dir * vec3(1.7, 2.6, 1.7) + seed * 3.0;
   vec3 w = vec3(fbm(q, 4), fbm(q + 3.3, 4), fbm(q + 7.1, 4));
   float c = fbm(q * 1.4 + w * 1.6, 7) * 0.5 + 0.5;
   float swirl = fbm(dir * 9.0 + w * 2.0, 4) * 0.5 + 0.5;
   float belt = 0.55 + 0.25 * gauss(lat01, 0.0, 0.1) + 0.35 * gauss(lat01, 0.62, 0.15) - 0.25 * gauss(lat01, 0.28, 0.1);
   float wisps = fbm(vec3(dir.x * 6.0, dir.y * 14.0, dir.z * 6.0) + w * 3.0, 6) * 0.5 + 0.5;
-  float cov = smoothstep(0.66 - belt * 0.16, 0.92, c * 0.7 + swirl * 0.25 + wisps * 0.15);
-  cov = cov * (0.55 + 0.45 * smoothstep(0.3, 0.7, wisps));
-  return vec4(vec3(1.0), clamp(cov, 0.0, 1.0) * 0.9);
+  float base = c * 0.75 + swirl * 0.15 + wisps * 0.1;
+  float cov = smoothstep(0.6 - belt * 0.12, 0.88, base);
+  cov *= 0.75 + 0.25 * wisps;
+  return vec4(vec3(1.0), clamp(cov, 0.0, 1.0) * 0.85);
 }
 
 vec4 earthLights(vec3 dir, float lat, float lon){
-  EarthSample s = earthSurface(dir, lat);
-  if (s.land < 0.0 || s.ice > 0.3) return vec4(0.0, 0.0, 0.0, 1.0);
-  float lat01 = abs(lat) / (PI * 0.5);
-  float pop = smoothstep(0.5, 0.75, fbm(dir * 3.5 + 31.0, 4) * 0.5 + 0.5);
-  pop *= 1.0 - smoothstep(0.55, 0.75, lat01);
-  pop *= 1.0 - smoothstep(0.35, 0.8, s.elev);
-  float coast = 1.0 - smoothstep(0.0, 0.05, s.land);
-  float cities = pow(fbm(dir * 60.0, 4) * 0.5 + 0.5, 6.0) * 5.0;
-  float towns = pow(fbm(dir * 180.0, 3) * 0.5 + 0.5, 9.0) * 6.0;
-  float v = (cities + towns) * (pop + coast * 0.35) * 0.8;
+  EarthSample s = earthSurface(dir, lat, lon);
+  float latd = degrees(lat), lond = degrees(lon);
+  float pop = 0.0;
+  for (int i = 0; i < 34; i++){
+    vec4 c = CITIES[i];
+    pop += c.w * region(latd, lond, vec4(c.x, c.y, c.z, c.z / max(cos(radians(c.x)), 0.2)));
+  }
+  pop = clamp(pop, 0.0, 1.2) + 0.08 * (1.0 - s.dry) * (1.0 - smoothstep(0.6, 0.7, abs(lat) / (PI * 0.5)));
+  pop *= s.land * (1.0 - s.ice);
+  float cities = pow(fbm(dir * 70.0, 4) * 0.5 + 0.5, 4.0) * 4.0;
+  float towns = pow(fbm(dir * 200.0, 3) * 0.5 + 0.5, 6.0) * 5.0;
+  float v = (cities + towns) * pop;
   return vec4(vec3(1.0, 0.72, 0.38) * clamp(v, 0.0, 1.0), 1.0);
 }
 
@@ -250,7 +329,7 @@ const FN = {
 /**
  * Bake one procedural map. Returns a texture (RGB = sRGB albedo, A = height/mask).
  */
-export function bakeTexture(renderer, kind, width, seed = 0) {
+export function bakeTexture(renderer, kind, width, seed = 0, { landMask = null } = {}) {
   const height = width / 2;
   const rt = new THREE.WebGLRenderTarget(width, height, {
     type: THREE.UnsignedByteType,
@@ -264,8 +343,8 @@ export function bakeTexture(renderer, kind, width, seed = 0) {
   rt.texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
   const material = new THREE.ShaderMaterial({
-    uniforms: { seed: { value: seed } },
-    defines: { BODY_FN: FN[kind] },
+    uniforms: { seed: { value: seed }, landMask: { value: landMask } },
+    defines: landMask ? { BODY_FN: FN[kind], LANDMASK: '' } : { BODY_FN: FN[kind] },
     vertexShader: /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
     fragmentShader: NOISE + BODY_GLSL,
     depthTest: false,

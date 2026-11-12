@@ -46,7 +46,7 @@ function makeLabel(body, onClick) {
   return obj;
 }
 
-export function createSolarSystem(renderer, scene, { onSelect, quality = 1 }) {
+export function createSolarSystem(renderer, scene, { onSelect, quality = 1, earthMask = null }) {
   const bodies = {};
   const orbitGroup = new THREE.Group();
   scene.add(orbitGroup);
@@ -62,19 +62,20 @@ export function createSolarSystem(renderer, scene, { onSelect, quality = 1 }) {
       const mat = createSunMaterial();
       body.mesh = new THREE.Mesh(SPHERE, mat);
       const glowTex = makeGlowTexture([
-        [0, 'rgba(255,240,200,1)'], [0.12, 'rgba(255,200,110,0.65)'], [0.3, 'rgba(255,140,40,0.18)'],
-        [0.6, 'rgba(255,100,20,0.04)'], [1, 'rgba(255,80,0,0)'],
+        [0, 'rgba(255,240,200,0.9)'], [0.1, 'rgba(255,200,110,0.45)'], [0.25, 'rgba(255,140,40,0.1)'],
+        [0.5, 'rgba(255,100,20,0.02)'], [1, 'rgba(255,80,0,0)'],
       ]);
       body.glow = new THREE.Sprite(new THREE.SpriteMaterial({
         map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true,
-        color: new THREE.Color(1.6, 1.3, 1.0),
+        color: new THREE.Color(0.9, 0.75, 0.6),
       }));
       group.add(body.glow);
     } else {
       const size = Math.round((TEX_SIZE[data.id] || 1024) * quality);
-      const map = bakeTexture(renderer, data.id, size, data.id.length * 1.37);
+      const opts = data.id === 'earth' ? { landMask: earthMask } : {};
+      const map = bakeTexture(renderer, data.id, size, data.id.length * 1.37, opts);
       let nightMap = null;
-      if (data.id === 'earth') nightMap = bakeTexture(renderer, 'earthLights', size, data.id.length * 1.37);
+      if (data.id === 'earth') nightMap = bakeTexture(renderer, 'earthLights', size, data.id.length * 1.37, opts);
       const rings = data.rings ? {
         map: ringTex, inner: data.rings.innerKm / data.radiusKm, outer: data.rings.outerKm / data.radiusKm,
       } : null;
@@ -225,7 +226,7 @@ export function createSolarSystem(renderer, scene, { onSelect, quality = 1 }) {
       if (id === 'sun') {
         b.mesh.material.uniforms.time.value = elapsed;
         const camDist = camera.position.length();
-        b.glow.scale.setScalar(Math.max(b.radius * 9, camDist * 0.06));
+        b.glow.scale.setScalar(Math.max(b.radius * 5, camDist * 0.025));
       }
     }
   }

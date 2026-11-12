@@ -124,7 +124,7 @@ export function createPlanetMaterial({
         #ifdef OCEAN
           float ocean = 1.0 - smoothstep(0.0, 0.04, tex.a);
           vec3 H = normalize(L + V);
-          float spec = pow(max(dot(N, H), 0.0), 90.0) * 0.9 + pow(max(dot(N, H), 0.0), 12.0) * 0.06;
+          float spec = pow(max(dot(N, H), 0.0), 400.0) * 0.5 + pow(max(dot(N, H), 0.0), 40.0) * 0.05;
           color += vec3(1.0, 0.92, 0.8) * spec * ocean * smoothstep(0.0, 0.15, ndlGeo);
         #endif
 
@@ -316,7 +316,7 @@ export function createSunMaterial() {
         float mu = max(dot(normalize(vN), normalize(cameraPosition - vWorldPos)), 0.0);
         col *= 0.35 + 0.65 * pow(mu, 0.45);
         col += vec3(1.0, 0.55, 0.2) * pow(1.0 - mu, 2.0) * 0.5;
-        gl_FragColor = vec4(col * 2.2, 1.0);
+        gl_FragColor = vec4(col * 1.35, 1.0);
         ${OUTPUT_F}
       }`,
   });

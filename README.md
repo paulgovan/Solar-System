@@ -2,7 +2,7 @@
 
 An interactive, browser-based 3D model of the solar system. Every planet is drawn where it really is for the date shown, computed live from JPL orbital elements.
 
-Built with [Three.js](https://threejs.org) and [Vite](https://vitejs.dev). There are no image assets: planet surfaces, rings, the starfield and the Milky Way are all generated procedurally on the GPU.
+Built with [Three.js](https://threejs.org) and [Vite](https://vitejs.dev). There are no image assets. Earth's continents come from Natural Earth coastline data; the other planet surfaces, the rings, the starfield and the Milky Way are generated procedurally on the GPU.
 
 ## Features
 
@@ -45,6 +45,7 @@ npm run build    # production build in dist/
 src/ephemeris.js        orbital elements, Kepler solver, Moon, IAU rotation models
 src/scale.js            true ↔ compressed scale mapping
 src/textures.js         GPU-baked procedural planet maps, Saturn ring profile
+src/earthMask.js        Natural Earth coastlines rasterized into Earth's land mask
 src/shaders/            noise + custom materials (planets, rings, atmosphere, Sun, orbits)
 src/scene/              solar system bodies, sky / Milky Way, asteroid belt
 src/camera.js           orbit controls with fly-to and follow
@@ -74,6 +75,7 @@ The Vite `base` is set to `./`, so the build works under any repository name.
 - Rotation models: IAU Working Group on Cartographic Coordinates and Rotational Elements (2015)
 - Lunar theory after P. Schlyter / J. Meeus
 - Simplex noise: Ian McEwan, Stefan Gustavson (Ashima Arts), MIT License
+- Coastlines: [Natural Earth](https://www.naturalearthdata.com) 1:50m land (public domain), via the `world-atlas` package
 - Physical data: NASA Planetary Fact Sheets
 
 ## License

@@ -13,6 +13,7 @@ import { createSky } from './scene/sky.js';
 import { createAsteroidBelt } from './scene/asteroids.js';
 import { createSolarSystem } from './scene/solarSystem.js';
 import { createCameraRig } from './camera.js';
+import { loadEarthMask } from './earthMask.js';
 
 // ---------------------------------------------------------------------------
 // Renderer & scene
@@ -38,7 +39,7 @@ const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(window
   samples: pr > 1.5 ? 2 : 4, // MSAA keeps thin orbit lines smooth through post-processing
 }));
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.85, 0.55, 0.9);
+const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.4, 0.4, 0.95);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
@@ -47,10 +48,12 @@ scene.add(sky.group);
 const belt = createAsteroidBelt(isMobile ? 5000 : 9000);
 scene.add(belt.object);
 
-const system = createSolarSystem(renderer, scene, { onSelect: (id) => select(id), quality: isMobile ? 0.5 : 1 });
+const earthMask = await loadEarthMask(isMobile ? 2048 : 4096);
+const system = createSolarSystem(renderer, scene, { onSelect: (id) => select(id), quality: isMobile ? 0.5 : 1, earthMask });
 const { bodies } = system;
 
 const rig = createCameraRig(camera, canvas);
+if (import.meta.env.DEV) window.__app = { THREE, bodies, camera, rig, scene, earthMask };
 rig.controls.target.set(0, 0, 0);
 
 // ---------------------------------------------------------------------------

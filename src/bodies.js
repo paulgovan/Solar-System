@@ -24,7 +24,7 @@ export const BODIES = [
     id: 'earth', name: 'Earth', type: 'Terrestrial planet', color: '#4f8fe8',
     radiusKm: 6371.0, periodDays: 365.256, dayHours: 23.934, tiltDeg: 23.44, moons: 1,
     gravity: 9.81, meanTempC: 15, atmosphere: [0.35, 0.6, 1.0], atmosphereStrength: 1.0,
-    description: 'Our home: the only known world with liquid surface oceans and life. Surface shown here is procedurally generated, but its tilt, spin and position are real.',
+    description: 'Our home: the only known world with liquid surface oceans and life. Continents are drawn from Natural Earth coastline data, so the day/night side you see matches the real Earth at this moment.',
   },
   {
     id: 'moon', name: 'Moon', type: 'Natural satellite', color: '#cfcac2', parent: 'earth',
