@@ -312,6 +312,9 @@ vec4 pluto(vec3 dir, float lat, float lon){
   return vec4(col, clamp(0.5 + c.x * 0.5 + n * 0.1, 0.0, 1.0));
 }
 
+`;
+
+const BAKE_MAIN = /* glsl */ `
 void main(){
   float lon = (vUv.x - 0.5) * 2.0 * PI;
   float lat = (vUv.y - 0.5) * PI;
@@ -319,6 +322,18 @@ void main(){
   gl_FragColor = BODY_FN(dir, lat, lon);
 }
 `;
+
+// Extra bake functions registered by feature modules (e.g. moons). Each is GLSL
+// defining `vec4 <name>(vec3 dir, float lat, float lon)` returning RGB = sRGB albedo,
+// A = height (0.5 = flat). The helpers above (fbm, ridged, craters, spot, gauss) are in scope.
+const EXTRA_GLSL = [];
+
+/** Register a procedural surface: `name` is the GLSL function name, used as a body's `texture`. */
+export function registerBakeFunction(name, glsl) {
+  if (FN[name]) throw new Error(`Bake function already registered: ${name}`);
+  FN[name] = name;
+  EXTRA_GLSL.push(glsl);
+}
 
 const FN = {
   earth: 'earth', earthClouds: 'earthClouds', earthLights: 'earthLights',
@@ -330,6 +345,7 @@ const FN = {
  * Bake one procedural map. Returns a texture (RGB = sRGB albedo, A = height/mask).
  */
 export function bakeTexture(renderer, kind, width, seed = 0, { landMask = null } = {}) {
+  if (!FN[kind]) throw new Error(`Unknown bake function: ${kind}`);
   const height = width / 2;
   const rt = new THREE.WebGLRenderTarget(width, height, {
     type: THREE.UnsignedByteType,
@@ -346,7 +362,7 @@ export function bakeTexture(renderer, kind, width, seed = 0, { landMask = null }
     uniforms: { seed: { value: seed }, landMask: { value: landMask } },
     defines: landMask ? { BODY_FN: FN[kind], LANDMASK: '' } : { BODY_FN: FN[kind] },
     vertexShader: /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
-    fragmentShader: NOISE + BODY_GLSL,
+    fragmentShader: NOISE + BODY_GLSL + EXTRA_GLSL.join('\n') + BAKE_MAIN,
     depthTest: false,
     depthWrite: false,
   });

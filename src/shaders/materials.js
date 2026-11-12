@@ -8,6 +8,8 @@ const LOGDEPTH_V_PARS = /* glsl */ `#include <common>\n#include <logdepthbuf_par
 const LOGDEPTH_V = /* glsl */ `#include <logdepthbuf_vertex>\n`;
 const LOGDEPTH_F_PARS = /* glsl */ `#include <logdepthbuf_pars_fragment>\n`;
 const LOGDEPTH_F = /* glsl */ `#include <logdepthbuf_fragment>\n`;
+export const MAX_SHADOW_CASTERS = 4;
+
 const OUTPUT_F = /* glsl */ `#include <tonemapping_fragment>\n#include <colorspace_fragment>\n`;
 
 // ---------------------------------------------------------------------------
@@ -38,6 +40,9 @@ export function createPlanetMaterial({
       ringNormal: { value: new THREE.Vector3(0, 1, 0) },
       planetCenter: { value: new THREE.Vector3() },
       planetRadius: { value: 1 },
+      casters: { value: Array.from({ length: MAX_SHADOW_CASTERS }, () => new THREE.Vector4()) },
+      casterCount: { value: 0 },
+      sunAngle: { value: 0.004652 },
     },
     vertexShader: LOGDEPTH_V_PARS + /* glsl */ `
       varying vec2 vUv;
@@ -72,6 +77,9 @@ export function createPlanetMaterial({
       uniform vec3 ringNormal;
       uniform vec3 planetCenter;
       uniform float planetRadius;
+      uniform vec4 casters[${MAX_SHADOW_CASTERS}];
+      uniform int casterCount;
+      uniform float sunAngle;
       varying vec2 vUv;
       varying vec3 vWorldPos;
       varying vec3 vN;
@@ -118,6 +126,20 @@ export function createPlanetMaterial({
             }
           }
         #endif
+
+        // Shadows from other bodies: fraction of the Sun's disk hidden by each caster
+        for (int i = 0; i < ${MAX_SHADOW_CASTERS}; i++) {
+          if (i >= casterCount) break;
+          vec3 toC = casters[i].xyz - vWorldPos;
+          float dC = length(toC);
+          if (dot(toC, L) <= 0.0) continue;
+          float aC = asin(clamp(casters[i].w / dC, 0.0, 1.0));
+          float sep = acos(clamp(dot(toC / dC, L), -1.0, 1.0));
+          float aS = sunAngle;
+          float cover = 1.0 - smoothstep(abs(aC - aS), aC + aS, sep);
+          cover *= min(1.0, (aC * aC) / (aS * aS));
+          diffuse *= 1.0 - cover;
+        }
 
         vec3 color = albedo * (diffuse * 1.15 + 0.012);
 

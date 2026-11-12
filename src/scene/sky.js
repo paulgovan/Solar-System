@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import { NOISE } from '../shaders/noise.js';
-import { DEG, equatorialToEcliptic } from '../ephemeris.js';
+import { DEG, equatorialToEcliptic } from '../ephemeris/index.js';
 import { eclToScene } from '../scale.js';
 
 const SKY_RADIUS = 1e6;

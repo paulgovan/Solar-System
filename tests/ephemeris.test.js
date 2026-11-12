@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fixture from './fixtures/horizons.json';
 import {
   planetPosition, centuriesTT, solveKepler, moonGeocentric, AU_KM, J2000,
-} from '../src/ephemeris.js';
+} from '../src/ephemeris/index.js';
 
 // Fixture JDs are TDB; treat as TT (difference < 2 ms).
 const T_of = (jd) => (jd - J2000) / 36525;

@@ -124,7 +124,7 @@ input[type='date']::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .label:hover .name { background: rgba(255, 255, 255, 0.12); color: #fff; }
 .label.selected .name { color: #fff; background: rgba(255, 255, 255, 0.1); }
 .label.big .dot { opacity: 0; }
-.label.dwarf .name, .label.moon .name { font-size: 11px; opacity: 0.8; }
+.label.minor .name { font-size: 11px; opacity: 0.8; }
 .labels-off .label { opacity: 0; pointer-events: none; }
 .label.faded { opacity: 0; pointer-events: none; }
 
@@ -166,3 +166,5 @@ kbd { font-family: var(--font); font-size: 11.5px; padding: 1px 6px; border-radi
   .segmented button { padding: 6px 8px; font-size: 11.5px; }
   input[type='date'] { display: none; }
 }
+
+#body-list button.satellite { padding-left: 26px; font-size: 12.5px; }

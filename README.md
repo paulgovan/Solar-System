@@ -34,24 +34,32 @@ Requires Node.js 20.19+.
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm test         # ephemeris accuracy tests vs JPL Horizons
-npm run build    # production build in dist/
+npm run dev        # http://localhost:5173
+npm test           # unit tests, incl. ephemeris accuracy vs JPL Horizons
+npm run test:e2e   # Playwright smoke tests on the production build (uses local Chrome)
+npm run build      # production build in dist/
 ```
 
 ### Project layout
 
 ```
-src/ephemeris.js        orbital elements, Kepler solver, Moon, IAU rotation models
-src/scale.js            true ↔ compressed scale mapping
-src/textures.js         GPU-baked procedural planet maps, Saturn ring profile
-src/earthMask.js        Natural Earth coastlines rasterized into Earth's land mask
-src/shaders/            noise + custom materials (planets, rings, atmosphere, Sun, orbits)
+src/app.js              bootstrap: renderer, scene, UI wiring, feature modules, frame loop
+src/state.js            time / selection / toggles / scale state, event bus, URL hash
+src/bodies.js           body registry (physical data + engine fields, documented at the top)
+src/ephemeris/          time, Kepler, planets, Moon, IAU rotation, orbit providers
+src/scale.js            true ↔ compressed mapping (heliocentric and satellite offsets)
 src/scene/              solar system bodies, sky / Milky Way, asteroid belt
-src/camera.js           orbit controls with fly-to and follow
-src/main.js             app bootstrap, UI, time controls, URL state
-tests/                  accuracy tests and Horizons reference data
+src/shaders/            noise + custom materials (planets, rings, atmosphere, Sun, orbits)
+src/textures.js         GPU-baked procedural maps, ring profile, bake-function registry
+src/earthMask.js        Natural Earth coastlines rasterized into Earth's land mask
+src/ui/                 toolbar, time bar, body list, info panel, labels, picking, keyboard
+src/features/           optional feature modules (see below)
+tests/                  unit tests (Vitest) and e2e smoke tests (Playwright)
 ```
+
+### Adding features
+
+New capabilities live in feature modules registered in `src/features/index.js`. A module can, at import time, add bodies (`registerBodies`), orbit kinds (`registerOrbitProvider`), rotation models (`registerRotationModel`), procedural surfaces (`registerBakeFunction`) and toolbar toggles (`registerToggle`); its `setup(app)` and `update(app, dt)` hooks run after the scene is built and every frame. The comment at the top of `src/features/index.js` lists the full API.
 
 ## Deploying to GitHub Pages
 
