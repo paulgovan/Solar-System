@@ -1,0 +1,5 @@
+/* Screenshot toast (src/ui/screenshot.js) */
+#toast { position: absolute; left: 50%; bottom: 96px; transform: translate(-50%, 12px); padding: 9px 16px; border-radius: 999px; background: var(--panel-strong); border: 1px solid var(--border); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); font-size: 13px; opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; z-index: 30; white-space: nowrap; }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+@media (max-width: 820px) { #toast { bottom: 150px; } }
+.tool-cluster .icon-btn:disabled { opacity: 0.5; cursor: progress; }

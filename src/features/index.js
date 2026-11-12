@@ -28,6 +28,7 @@ import spacecraft from './spacecraft.js';
 import events from './events.js';
 import measure from './measure.js';
 import scaleBar from './scaleBar.js';
+import screenshot from './screenshot.js';
 
 export const features = [
   stars,
@@ -40,4 +41,5 @@ export const features = [
   events,
   measure,
   scaleBar,
+  screenshot,
 ];
