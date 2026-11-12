@@ -85,6 +85,8 @@ The Vite `base` is set to `./`, so the build works under any repository name.
 - Simplex noise: Ian McEwan, Stefan Gustavson (Ashima Arts), MIT License
 - Coastlines: [Natural Earth](https://www.naturalearthdata.com) 1:50m land (public domain), via the `world-atlas` package
 - Physical data: NASA Planetary Fact Sheets
+- Stars: Yale Bright Star Catalogue, 5th revised ed. (Hoffleit & Warren 1991), public domain; converted by `scripts/build-stars.mjs`
+- Constellation lines and names: [d3-celestial](https://github.com/ofrohn/d3-celestial) © 2015 Olaf Frohn, BSD-3-Clause
 
 ## License
 
