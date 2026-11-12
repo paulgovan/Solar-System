@@ -1,0 +1,127 @@
+{
+ "source": "JPL Horizons API, geocentric (500@399) apparent ecliptic longitude / S-O-T, hourly; fetched 2026-11-12",
+ "events": [
+  {
+   "type": "opposition",
+   "body": "mars",
+   "approx": "2025-01-16",
+   "time": "2025-01-16T02:38Z"
+  },
+  {
+   "type": "opposition",
+   "body": "saturn",
+   "approx": "2025-09-21",
+   "time": "2025-09-21T05:45Z"
+  },
+  {
+   "type": "opposition",
+   "body": "neptune",
+   "approx": "2025-09-23",
+   "time": "2025-09-23T12:53Z"
+  },
+  {
+   "type": "opposition",
+   "body": "uranus",
+   "approx": "2025-11-21",
+   "time": "2025-11-21T12:25Z"
+  },
+  {
+   "type": "opposition",
+   "body": "jupiter",
+   "approx": "2024-12-07",
+   "time": "2024-12-07T20:58Z"
+  },
+  {
+   "type": "opposition",
+   "body": "jupiter",
+   "approx": "2026-01-10",
+   "time": "2026-01-10T08:42Z"
+  },
+  {
+   "type": "opposition",
+   "body": "saturn",
+   "approx": "2026-10-04",
+   "time": "2026-10-04T12:29Z"
+  },
+  {
+   "type": "opposition",
+   "body": "mars",
+   "approx": "2027-02-19",
+   "time": "2027-02-19T15:50Z"
+  },
+  {
+   "type": "inferior",
+   "body": "venus",
+   "approx": "2025-03-23",
+   "time": "2025-03-23T01:07Z"
+  },
+  {
+   "type": "superior",
+   "body": "venus",
+   "approx": "2026-01-06",
+   "time": "2026-01-06T16:36Z"
+  },
+  {
+   "type": "inferior",
+   "body": "mercury",
+   "approx": "2025-03-24",
+   "time": "2025-03-24T19:48Z"
+  },
+  {
+   "type": "conjunction-sun",
+   "body": "jupiter",
+   "approx": "2025-06-24",
+   "time": "2025-06-24T15:17Z"
+  },
+  {
+   "type": "conjunction-sun",
+   "body": "mars",
+   "approx": "2026-01-09",
+   "time": "2026-01-09T11:41Z"
+  },
+  {
+   "type": "elongation",
+   "body": "mercury",
+   "approx": "2025-04-21",
+   "time": "2025-04-21T18:48Z",
+   "elongationDeg": 27.39
+  },
+  {
+   "type": "elongation",
+   "body": "mercury",
+   "approx": "2025-08-19",
+   "time": "2025-08-19T09:47Z",
+   "elongationDeg": 18.58
+  },
+  {
+   "type": "elongation",
+   "body": "venus",
+   "approx": "2025-06-01",
+   "time": "2025-06-01T03:36Z",
+   "elongationDeg": 45.88
+  },
+  {
+   "type": "elongation",
+   "body": "venus",
+   "approx": "2026-08-15",
+   "time": "2026-08-15T06:36Z",
+   "elongationDeg": 45.89
+  },
+  {
+   "type": "conjunction",
+   "body": "jupiter",
+   "other": "saturn",
+   "approx": "2020-12-21",
+   "time": "2020-12-21T18:20Z",
+   "separationArcmin": 6.1
+  },
+  {
+   "type": "conjunction",
+   "body": "venus",
+   "other": "jupiter",
+   "approx": "2025-08-12",
+   "time": "2025-08-12T05:30Z",
+   "separationArcmin": 51.6
+  }
+ ]
+}
