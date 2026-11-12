@@ -10,9 +10,17 @@ test.afterEach(() => {
   expect(errors, 'console errors').toEqual([]);
 });
 
+// The first frame appears with preview textures; full-resolution bakes then run in idle
+// time. Under the software GL used in CI those bakes can starve frames for seconds, so
+// tests that depend on prompt frame updates wait until they have all finished.
+async function waitForFullyLoaded(page) {
+  await expect(page.locator('#loader')).toHaveClass(/hidden/, { timeout: 30_000 });
+  await page.waitForFunction(() => 'loaded' in document.documentElement.dataset, null, { timeout: 90_000 });
+}
+
 test('eclipse panel lists eclipses and jumps to one', async ({ page }) => {
   await page.goto('./#t=2026-01-01T00:00Z&paused=1');
-  await expect(page.locator('#loader')).toHaveClass(/hidden/, { timeout: 30_000 });
+  await waitForFullyLoaded(page);
 
   await page.locator('#eclipses-btn').click();
   const panel = page.locator('#eclipses');
@@ -33,7 +41,7 @@ test('eclipse panel lists eclipses and jumps to one', async ({ page }) => {
 
 test('a totally eclipsed Moon reports no direct sunlight', async ({ page }) => {
   await page.goto('./#t=2025-03-14T06:59Z&body=moon&paused=1');
-  await expect(page.locator('#loader')).toHaveClass(/hidden/, { timeout: 30_000 });
+  await waitForFullyLoaded(page);
   await expect(page.locator('#info-live')).toContainText('Centre in Earth’s umbra');
   await expect(page.locator('#info-live')).toContainText(/Sun visible from Moon\s*0%/);
 });
