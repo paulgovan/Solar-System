@@ -8,7 +8,8 @@ import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { bodiesInUpdateOrder } from '../bodies.js';
 import { orientation, hasOrientation, equatorialToEcliptic, getOrbitProvider, frameContext, J2000 } from '../ephemeris/index.js';
 import { mapPosition, mapRadius, mapSatelliteOffset, eclToScene } from '../scale.js';
-import { bakeTexture, makeSaturnRingTexture, makeGlowTexture } from '../textures.js';
+import { makeSaturnRingTexture, makeGlowTexture } from '../textures.js';
+import { bakeProgressive } from '../textures/bakeQueue.js';
 import {
   createPlanetMaterial, createCloudMaterial, createAtmosphereMaterial, createRingMaterial,
   createSunMaterial, createOrbitMaterial, MAX_SHADOW_CASTERS,
@@ -63,8 +64,8 @@ function createPlanetVisual(body, { renderer, quality, earthMask, ringTex }) {
   const size = Math.round((data.textureSize || 1024) * quality);
   const seed = data.id.length * 1.37;
   const opts = data.id === 'earth' ? { landMask: earthMask } : {};
-  const map = bakeTexture(renderer, kind, size, seed, opts);
-  const nightMap = data.nightLights ? bakeTexture(renderer, 'earthLights', size, seed, opts) : null;
+  const map = bakeProgressive(renderer, kind, size, seed, opts, body);
+  const nightMap = data.nightLights ? bakeProgressive(renderer, 'earthLights', size, seed, opts, body) : null;
   const rings = data.rings ? {
     map: data.rings.map || ringTex, inner: data.rings.innerKm / data.radiusKm, outer: data.rings.outerKm / data.radiusKm,
   } : null;
@@ -76,7 +77,7 @@ function createPlanetVisual(body, { renderer, quality, earthMask, ringTex }) {
   body.mesh = new THREE.Mesh(SPHERE, body.material);
 
   if (data.clouds) {
-    const clouds = bakeTexture(renderer, 'earthClouds', size, 4.2);
+    const clouds = bakeProgressive(renderer, 'earthClouds', size, 4.2, {}, body);
     body.clouds = new THREE.Mesh(SPHERE, createCloudMaterial(clouds));
     body.clouds.scale.setScalar(1.006);
     body.mesh.add(body.clouds);
