@@ -21,6 +21,7 @@ import { loadEarthMask } from './earthMask.js';
 import { startBakeQueue, whenBaked } from './textures/bakeQueue.js';
 import { precompileBakes } from './textures.js';
 import { initToolbar } from './ui/toolbar.js';
+import { initPanelOffset } from './ui/panelOffset.js';
 import { initTimeControls } from './ui/timeControls.js';
 import { initBodyList } from './ui/bodyList.js';
 import { initInfoPanel } from './ui/infoPanel.js';
@@ -44,7 +45,7 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (reduceMotion) state.playing = false;
 const canvas = document.getElementById('scene');
 const isMobile = matchMedia('(max-width: 820px)').matches || /Mobi|Android/i.test(navigator.userAgent);
-// `?quality=low` renders with small textures and fewer asteroids: for slow devices, and
+// `?quality=low` renders with small textures, fewer asteroids, no bloom and no MSAA: for slow devices, and
 // for the e2e tests, which run on GPU-less CI runners where software GL is very slow.
 const lowQuality = new URLSearchParams(location.search).get('quality') === 'low';
 // Coastlines are rasterized in a worker while the scene is set up; Earth's full-resolution
@@ -65,10 +66,11 @@ const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerH
 const pr = renderer.getPixelRatio();
 const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(window.innerWidth * pr, window.innerHeight * pr, {
   type: THREE.HalfFloatType,
-  samples: pr > 1.5 ? 2 : 4, // MSAA keeps thin orbit lines smooth through post-processing
+  samples: lowQuality ? 0 : pr > 1.5 ? 2 : 4, // MSAA keeps thin orbit lines smooth through post-processing
 }));
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.4, 0.4, 0.95);
+bloom.enabled = !lowQuality; // bloom and MSAA are the costly parts of a frame under software GL
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
@@ -103,6 +105,7 @@ if (import.meta.env.DEV) {
 // UI
 // ---------------------------------------------------------------------------
 initToolbar();
+initPanelOffset();
 const updateDate = initTimeControls();
 initBodyList();
 const info = initInfoPanel(app);

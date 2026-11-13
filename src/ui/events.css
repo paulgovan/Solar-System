@@ -4,7 +4,7 @@
 .tool-cluster .icon-btn svg.ti { fill: none; stroke: currentColor; }
 .tool-cluster .icon-btn:focus-visible { border-radius: 50%; }
 
-#events { top: 70px; right: 18px; width: 360px; padding: 18px 18px 14px; max-height: calc(100% - 180px); overflow-y: auto; background: var(--panel-strong); z-index: 5; }
+#events { top: var(--panel-top, 70px); right: 18px; width: 360px; padding: 18px 18px 14px; max-height: calc(100% - var(--panel-top, 70px) - 110px); overflow-y: auto; background: var(--panel-strong); z-index: 5; }
 #events h2 { margin: 0 0 10px; font-family: var(--display); font-weight: 500; font-size: 20px; }
 #events h3 { margin: 14px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 #events ul { list-style: none; margin: 0; padding: 0; }

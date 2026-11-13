@@ -1,6 +1,6 @@
 /* Sky-from-Earth panel (src/ui/observer.js) */
 #observer-btn svg { width: 18px; height: 18px; }
-#observer { top: 70px; right: 18px; width: 392px; padding: 18px 16px 14px; max-height: calc(100% - 180px); overflow-y: auto; background: var(--panel-strong); z-index: 6; }
+#observer { top: var(--panel-top, 70px); right: 18px; width: 392px; padding: 18px 16px 14px; max-height: calc(100% - var(--panel-top, 70px) - 110px); overflow-y: auto; background: var(--panel-strong); z-index: 6; }
 #observer h2 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 20px; }
 #observer h3 { margin: 14px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 #observer h3 small { font-size: 10.5px; letter-spacing: 0.04em; text-transform: none; font-weight: 400; }
