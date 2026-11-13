@@ -29,6 +29,7 @@ import events from './events.js';
 import measure from './measure.js';
 import scaleBar from './scaleBar.js';
 import screenshot from './screenshot.js';
+import skyView from './skyView.js';
 
 export const features = [
   stars,
@@ -42,4 +43,5 @@ export const features = [
   measure,
   scaleBar,
   screenshot,
+  skyView,
 ];

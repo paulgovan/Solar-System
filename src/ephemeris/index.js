@@ -8,3 +8,4 @@ export * from './rotation.js';
 export * from './positions.js';
 export * from './providers.js';
 export * from './eclipses.js';
+export * from './topocentric.js';
